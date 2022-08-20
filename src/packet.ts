@@ -139,7 +139,7 @@ export class Packet implements DumlPacket {
 
         const ret = Reflect.set(target, propertyName, value);
         if (Packet.prototype[propertyName] !== null) {
-          packet.changed = true
+          packet.changed = true;
           packet.calculatePacket();
         }
 

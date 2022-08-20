@@ -6,8 +6,8 @@ describe('packet tests', () => {
   it('can utilize specialty to string methods', () => {
     const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
     const packet = new Packet(expected);
-    packet.toShortString()
-    packet.toLongString()
+    packet.toShortString();
+    packet.toLongString();
   });
 
   it('checking a small known good packet', () => {
