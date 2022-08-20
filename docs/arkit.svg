@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="108px" preserveAspectRatio="none" style="width:120px;height:108px;" version="1.1" viewBox="0 0 120 108" width="120px" zoomAndPan="magnify"><defs/><g><ellipse cx="22.435" cy="80.8774" fill="#F8F8F8" rx="16.435" ry="12.8774" style="stroke: #383838; stroke-width: 0.5;"/><text fill="#000000" font-family="Tahoma, sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="19" x="12.935" y="84.3618">crc</text><!--MD5=[b6aec534b6518cd5348a9d124f26c501]
+entity _packet--><rect fill="#F8F8F8" height="33.9688" rx="3" ry="3" style="stroke: #000000; stroke-width: 0.5;" width="63" x="46" y="8"/><text fill="#000000" font-family="Tahoma, sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="43" x="56" y="29.1387">packet</text><!--MD5=[0190f419ef54fc162964943b68b4f170]
+entity _types--><rect fill="#F8F8F8" height="33.9688" rx="3" ry="3" style="stroke: #000000; stroke-width: 0.5;" width="55" x="50" y="64"/><text fill="#000000" font-family="Tahoma, sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="35" x="60" y="85.1387">types</text><!--MD5=[e55ef82bb90d09d9527cf040e1711a20]
+link _packet to crc--><path d="M60.9982,42.2018 C53.0957,49.9606 43.7424,59.1438 36.234,66.5157 " fill="none" id="_packet-&gt;crc" style="stroke: #000000; stroke-width: 0.5;"/><polygon fill="#000000" points="32.2735,70.4042,41.4979,66.9531,35.8413,66.9012,35.8932,61.2446,32.2735,70.4042" style="stroke: #000000; stroke-width: 0.5;"/><!--MD5=[5602c4730c5ba325238be3c5c78b312b]
+link _packet to _types--><path d="M74.0304,42.2018 C73.7498,47.3277 73.6798,53.0754 73.8203,58.5117 " fill="none" id="_packet-&gt;_types" style="stroke: #000000; stroke-width: 0.5;"/><polygon fill="#000000" points="74.031,63.8097,77.6699,54.6577,73.8321,58.8137,69.6762,54.9759,74.031,63.8097" style="stroke: #000000; stroke-width: 0.5;"/><!--MD5=[c706a3aed30d2131560044d0702f2831]
+link _types to _packet--><path d="M81.6628,63.8097 C81.9998,58.6846 82.0842,52.9372 81.916,47.5004 " fill="none" id="_types-&gt;_packet" style="stroke: #000000; stroke-width: 0.5;"/><polygon fill="#000000" points="81.6635,42.2018,78.0964,51.382,81.9015,47.1961,86.0874,51.0012,81.6635,42.2018" style="stroke: #000000; stroke-width: 0.5;"/><script type="text/plantuml"><![CDATA[MD5=[35258410084b1f47b150274730618d04]
+@startuml
+
+scale max 1920 width
+top to bottom direction
+
+skinparam nodesep 11
+skinparam ranksep 22
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam dpi 150
+skinparam arrowColor black
+skinparam arrowThickness 0.5
+skinparam packageTitleAlignment left
+
+skinparam usecase {
+  borderThickness 0.5
+}
+
+skinparam rectangle {
+  borderThickness 0.5
+}
+
+skinparam component {
+  borderThickness 1
+}
+
+
+(crc)
+rectangle "packet" as _packet
+rectangle "types" as _types
+
+
+_packet --> (crc)
+_packet --> _types
+_types --> _packet
+
+@enduml
+
+
+' View and edit on https://arkit.pro
+]]></script></g></svg>
