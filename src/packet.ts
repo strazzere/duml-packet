@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { crc8Wire, crc16KermitJam } from './crc';
 
-import { DeviceType, CommandType, AckType, EncryptionType } from './types';
+import { PacketOptions, DeviceType, CommandType, AckType, EncryptionType } from './types';
 
 export interface DumlPacket {
   raw: Buffer;
@@ -24,9 +24,11 @@ export interface DumlPacket {
   commandType: CommandType;
   ackType: AckType;
   encryptionType: EncryptionType;
+
   commandSet: number;
   command: number;
   commandPayload: Buffer;
+
   crc: number;
 
   isValid(): boolean;
@@ -35,63 +37,135 @@ export interface DumlPacket {
 
 export class Packet implements DumlPacket {
   raw: Buffer;
+
   version: number;
   length: number;
   crcHead: number;
+
   sourceRaw: number;
   sourceType: DeviceType;
   sourceIndex: number;
+
   destinationRaw: number;
   destinationType: number;
   destinationIndex: number;
+
   sequenceID: number;
+
   commandTypeRaw: number;
   commandType: CommandType;
   ackType: AckType;
   encryptionType: EncryptionType;
+
   commandSet: number;
   command: number;
   commandPayload: Buffer;
+
   crc: number;
 
   changed: boolean;
-
   emitter: EventEmitter;
 
-  constructor(buffer: Buffer, autoCalculate = true) {
-    if (!buffer || buffer.length < 13) {
+  constructor(packet: PacketOptions, autoCalculate = true) {
+    // If any raw types have been passed, then they will take presidence
+    // over other parameters passed in
+    if (!packet.raw) {
+      this.version = packet.version ? packet.version : 0x1;
+
+      // We need to calculate this for the length
+      this.commandPayload = packet.commandPayload ? packet.commandPayload : Buffer.alloc(0);
+
+      this.length = packet.length
+        ? packet.length
+        : 12 + (this.commandPayload.length === 0 ? 1 : this.commandPayload.length);
+
+      this.crcHead = packet.crcHead ? packet.crcHead : 0x00;
+
+      this.sourceRaw = packet.sourceRaw ? packet.sourceRaw : 0x00;
+      if (packet.sourceRaw) {
+        this.sourceType = this.sourceRaw & 0xe;
+        this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
+      } else {
+        this.sourceType = packet.sourceType ? packet.sourceType : 0x00;
+        this.sourceIndex = packet.sourceIndex ? packet.sourceIndex : 0x00;
+        this.sourceRaw = this.sourceType | (this.sourceIndex << 0x5);
+      }
+
+      this.destinationRaw = packet.destinationRaw ? packet.destinationRaw : 0x00;
+      if (packet.destinationRaw) {
+        this.destinationType = this.destinationRaw & 0xe;
+        this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
+      } else {
+        this.destinationType = packet.destinationType ? packet.destinationType : 0x00;
+        this.destinationIndex = packet.destinationIndex ? packet.destinationIndex : 0x00;
+        this.destinationRaw = this.destinationType | (this.destinationIndex << 0x5);
+      }
+
+      this.sequenceID = packet.sequenceID ? packet.sequenceID : 0x0000;
+
+      this.commandTypeRaw = packet.commandTypeRaw ? packet.commandTypeRaw : 0x00;
+      if (packet.commandTypeRaw) {
+        this.commandType = this.commandTypeRaw >> 7;
+        this.ackType = this.commandTypeRaw >> 5;
+        this.encryptionType = this.commandTypeRaw & 0x0f;
+      } else {
+        this.commandType = packet.commandType ? packet.commandType : 0x00;
+        this.ackType = packet.ackType ? packet.ackType : 0x00;
+        this.encryptionType = packet.encryptionType ? packet.encryptionType : 0x00;
+        this.commandTypeRaw = (this.commandType << 7) | (this.ackType << 5) | this.encryptionType;
+      }
+
+      this.commandSet = packet.commandSet ? packet.commandSet : 0x00;
+
+      // Command payload done first for length
+
+      this.crc = packet.crc ? packet.crc : 0x0000;
+
+      this.changed = false;
+
+      // Generate raw at this point, which will change the crcs given above, if at all
+      this.calculatePacket(autoCalculate);
+
+      if (autoCalculate) {
+        return this.createPacketProxy(this);
+      }
+
+      return this;
+    }
+
+    if (!packet.raw || packet.raw.length < 13) {
       throw new Error(`Buffer length smaller than minimum size allowed for valid packet`);
     }
 
-    if (buffer[0] !== 0x55) {
+    if (packet.raw[0] !== 0x55) {
       throw new Error(`Unexpected magic identifier`);
     }
 
-    this.version = (buffer.readUInt16LE(1) & 0xfc00) >> 0xa;
-    this.length = buffer.readUInt16LE(1) & 0x03ff;
-    this.crcHead = buffer.readUInt8(3);
+    this.version = (packet.raw.readUInt16LE(1) & 0xfc00) >> 0xa;
+    this.length = packet.raw.readUInt16LE(1) & 0x03ff;
+    this.crcHead = packet.raw.readUInt8(3);
 
-    if (this.length > buffer.length) {
+    if (this.length > packet.raw.length) {
       throw new Error('Packet length larger than provided buffer');
     }
 
-    this.raw = buffer;
-    this.sourceRaw = buffer.readUInt8(4);
+    this.raw = packet.raw;
+    this.sourceRaw = this.raw.readUInt8(4);
     this.sourceType = this.sourceRaw & 0xe;
     this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
 
-    this.destinationRaw = buffer.readUInt8(5);
+    this.destinationRaw = this.raw.readUInt8(5);
     this.destinationType = this.destinationRaw & 0xe;
     this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
 
-    this.sequenceID = buffer.readUInt16BE(6);
-    this.commandTypeRaw = buffer.readUInt8(8);
+    this.sequenceID = this.raw.readUInt16BE(6);
+    this.commandTypeRaw = this.raw.readUInt8(8);
     this.commandType = this.commandTypeRaw >> 7;
     this.ackType = this.commandTypeRaw >> 5;
     this.encryptionType = this.commandTypeRaw & 0x0f;
-    this.commandSet = buffer.readUInt8(9);
-    this.commandPayload = buffer.subarray(10, buffer.length - 2);
-    this.crc = buffer.readUInt16LE(buffer.length - 2);
+    this.commandSet = this.raw.readUInt8(9);
+    this.commandPayload = this.raw.subarray(10, this.raw.length - 2);
+    this.crc = this.raw.readUInt16LE(this.raw.length - 2);
 
     this.changed = false;
 
@@ -150,8 +224,10 @@ export class Packet implements DumlPacket {
     return new Proxy(packet, handler);
   }
 
-  calculatePacket() {
-    this.length = 12 + (this.commandPayload.length === 0 ? 1 : this.commandPayload.length);
+  calculatePacket(generate = true) {
+    if (generate) {
+      this.length = 12 + (this.commandPayload.length === 0 ? 1 : this.commandPayload.length);
+    }
     const buffer = Buffer.alloc(this.length);
 
     // Write magic byte
@@ -161,7 +237,10 @@ export class Packet implements DumlPacket {
     buffer.writeUInt16LE(((this.version & 0x3f) << 0xa) | this.length, 1);
 
     // Header crc
-    this.crcHead = crc8Wire(buffer.subarray(0, 3));
+    if (generate) {
+      this.crcHead = crc8Wire(buffer.subarray(0, 3));
+    }
+
     buffer.writeUInt8(this.crcHead, 3);
 
     this.sourceRaw = this.sourceType | (this.sourceIndex << 0x5);
@@ -169,6 +248,7 @@ export class Packet implements DumlPacket {
 
     this.destinationRaw = this.destinationType | (this.destinationIndex << 0x5);
     buffer.writeUInt8(this.destinationRaw, 5);
+
     buffer.writeUInt16BE(this.sequenceID, 6);
 
     this.commandTypeRaw = (this.commandType << 7) | (this.ackType << 5) | this.encryptionType;
@@ -183,7 +263,9 @@ export class Packet implements DumlPacket {
       buffer.writeUInt8(0x00, 10);
     }
 
-    this.crc = crc16KermitJam(buffer.subarray(0, buffer.length - 2));
+    if (generate) {
+      this.crc = crc16KermitJam(buffer.subarray(0, buffer.length - 2));
+    }
     buffer.writeUInt16LE(this.crc, buffer.length - 2);
 
     this.raw = buffer;
@@ -245,5 +327,9 @@ export class Packet implements DumlPacket {
 
   toBuffer(): Buffer {
     return this.raw;
+  }
+
+  static fromBuffer(buffer: Buffer, autoCalculate = true) {
+    return new Packet({ raw: buffer }, autoCalculate);
   }
 }

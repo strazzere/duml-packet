@@ -1,3 +1,32 @@
+export interface PacketOptions {
+  raw?: Buffer;
+
+  version?: number;
+  length?: number;
+  crcHead?: number;
+
+  sourceRaw?: number;
+  sourceType?: DeviceType;
+  sourceIndex?: number;
+
+  destinationRaw?: number;
+  destinationType?: number;
+  destinationIndex?: number;
+
+  sequenceID?: number;
+
+  commandTypeRaw?: number;
+  commandType?: CommandType;
+  ackType?: AckType;
+  encryptionType?: EncryptionType;
+
+  commandSet?: number;
+  command?: number;
+  commandPayload?: Buffer;
+
+  crc?: number;
+}
+
 export enum DeviceType {
   ANY,
   CAMERA,
@@ -7,7 +36,7 @@ export enum DeviceType {
   MAIN_BOARD,
   REMOTE_RADIO,
   WIFI_SKY,
-  LB_DM3XX_SKY,
+  LB_DM3XX_SKY, // ve_air
   LB_MCU_SKY,
   PC,
   BATTERY,

@@ -5,14 +5,55 @@ import { expect } from 'chai';
 describe('packet tests', () => {
   it('can utilize specialty to string methods', () => {
     const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
-    const packet = new Packet(expected);
+    const packet = Packet.fromBuffer(expected);
     packet.toShortString();
     packet.toLongString();
   });
 
+  it('can allow different constructor usages', () => {
+    const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
+    let packet = new Packet({
+      version: 0x1,
+      length: 0x0e,
+      crcHead: 0x66,
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      sequenceID: 0xde2f,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      commandPayload: Buffer.from('5b01', 'hex'),
+      crc: 0x3aa5,
+    });
+
+    expect(packet.toBuffer(), 'created with raw tags did not match').to.deep.equal(expected);
+
+    packet = undefined;
+    packet = new Packet(
+      {
+        version: 0x1,
+        length: 0x0e,
+        crcHead: 0x66,
+        sourceType: DeviceType.PC,
+        sourceIndex: 0x1,
+        destinationType: DeviceType.LB_DM3XX_SKY,
+        destinationIndex: 0x1,
+        sequenceID: 0xde2f,
+        commandType: CommandType.REQUEST,
+        ackType: AckType.ACK,
+        encryptionType: EncryptionType.NONE,
+        commandSet: 0x00,
+        commandPayload: Buffer.from('5b01', 'hex'),
+        crc: 0x3aa5,
+      },
+      false,
+    );
+
+    expect(packet.toBuffer(), 'created without raw tags did not match').to.deep.equal(expected);
+  });
+
   it('checking a small known good packet', () => {
     const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
-    const packet = new Packet(expected);
+    const packet = Packet.fromBuffer(expected);
 
     // 55 0E04 66 2A 28 DE2F 40 00 5B01 A53A
     expect(packet.version, 'version bad').to.equal(0x1);
@@ -77,7 +118,7 @@ describe('packet tests', () => {
 
   it('will not recalculate packets if disabled', () => {
     const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
-    const packet = new Packet(expected, false);
+    const packet = Packet.fromBuffer(expected, false);
 
     packet.sourceRaw = 0x2b;
 
@@ -87,7 +128,7 @@ describe('packet tests', () => {
 
   it('correctly recalculates the packet when a deep member has changes', () => {
     const test = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
-    const packet = new Packet(test);
+    const packet = Packet.fromBuffer(test);
 
     packet.commandPayload = undefined;
     expect(packet.commandPayload.buffer, 'payload did not change to empty set').to.deep.equal(
@@ -126,26 +167,26 @@ describe('packet tests', () => {
 
   it('correctly throws when packet is bad', () => {
     const badConstructor = () => {
-      new Packet(Buffer.from('56D1FFBEEFD1FFBEEFD1FFBEEF', 'hex'));
+      Packet.fromBuffer(Buffer.from('56D1FFBEEFD1FFBEEFD1FFBEEF', 'hex'));
     };
     expect(badConstructor).to.throw('Unexpected magic identifier');
 
     const badLengthSmallConstructor = () => {
-      new Packet(Buffer.from('55D1FF', 'hex'));
+      Packet.fromBuffer(Buffer.from('55D1FF', 'hex'));
     };
     expect(badLengthSmallConstructor).to.throw(
       'Buffer length smaller than minimum size allowed for valid packet',
     );
 
     const badBufferConstructor = () => {
-      new Packet(Buffer.from('', 'hex'));
+      Packet.fromBuffer(Buffer.alloc(0));
     };
     expect(badBufferConstructor).to.throw(
       'Buffer length smaller than minimum size allowed for valid packet',
     );
 
     const badLengthLargeConstructor = () => {
-      new Packet(Buffer.from('55D1FFBEEFD1FFBEEFD1FFBEEF', 'hex'));
+      Packet.fromBuffer(Buffer.from('55D1FFBEEFD1FFBEEFD1FFBEEF', 'hex'));
     };
     expect(badLengthLargeConstructor).to.throw('Packet length larger than provided buffer');
   });
