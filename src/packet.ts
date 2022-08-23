@@ -1,7 +1,15 @@
 import { EventEmitter } from 'events';
 import { crc8Wire, crc16KermitJam } from './crc';
 
-import { PacketOptions, DeviceType, CommandType, AckType, EncryptionType } from './types';
+import {
+  PacketOptions,
+  GeneralTypes,
+  DeviceType,
+  CommandType,
+  AckType,
+  EncryptionType,
+  SetType,
+} from './types';
 
 export interface DumlPacket {
   raw: Buffer;
@@ -73,11 +81,9 @@ export class Packet implements DumlPacket {
       this.version = packet.version ? packet.version : 0x1;
 
       // We need to calculate this for the length
-      this.commandPayload = packet.commandPayload ? packet.commandPayload : Buffer.alloc(0);
+      this.commandPayload = packet.commandPayload ? packet.commandPayload : undefined;
 
-      this.length = packet.length
-        ? packet.length
-        : 12 + (this.commandPayload.length === 0 ? 1 : this.commandPayload.length);
+      this.length = packet.length ? packet.length : 13 + ~~this.commandPayload?.length;
 
       this.crcHead = packet.crcHead ? packet.crcHead : 0x00;
 
@@ -86,8 +92,8 @@ export class Packet implements DumlPacket {
         this.sourceType = this.sourceRaw & 0xe;
         this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
       } else {
-        this.sourceType = packet.sourceType ? packet.sourceType : 0x00;
-        this.sourceIndex = packet.sourceIndex ? packet.sourceIndex : 0x00;
+        this.sourceType = packet.sourceType ? packet.sourceType : DeviceType.ANY;
+        this.sourceIndex = packet.sourceIndex ? packet.sourceIndex : DeviceType.ANY;
         this.sourceRaw = this.sourceType | (this.sourceIndex << 0x5);
       }
 
@@ -96,8 +102,8 @@ export class Packet implements DumlPacket {
         this.destinationType = this.destinationRaw & 0xe;
         this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
       } else {
-        this.destinationType = packet.destinationType ? packet.destinationType : 0x00;
-        this.destinationIndex = packet.destinationIndex ? packet.destinationIndex : 0x00;
+        this.destinationType = packet.destinationType ? packet.destinationType : DeviceType.ANY;
+        this.destinationIndex = packet.destinationIndex ? packet.destinationIndex : DeviceType.ANY;
         this.destinationRaw = this.destinationType | (this.destinationIndex << 0x5);
       }
 
@@ -109,15 +115,16 @@ export class Packet implements DumlPacket {
         this.ackType = this.commandTypeRaw >> 5;
         this.encryptionType = this.commandTypeRaw & 0x0f;
       } else {
-        this.commandType = packet.commandType ? packet.commandType : 0x00;
-        this.ackType = packet.ackType ? packet.ackType : 0x00;
-        this.encryptionType = packet.encryptionType ? packet.encryptionType : 0x00;
+        this.commandType = packet.commandType ? packet.commandType : CommandType.REQUEST;
+        this.ackType = packet.ackType ? packet.ackType : AckType.NO_ACK;
+        this.encryptionType = packet.encryptionType ? packet.encryptionType : EncryptionType.NONE;
         this.commandTypeRaw = (this.commandType << 7) | (this.ackType << 5) | this.encryptionType;
       }
 
-      this.commandSet = packet.commandSet ? packet.commandSet : 0x00;
+      this.commandSet = packet.commandSet ? packet.commandSet : SetType.GENERAL;
 
       // Command payload done first for length
+      this.command = packet.command ? packet.command : 0x00;
 
       this.crc = packet.crc ? packet.crc : 0x0000;
 
@@ -164,7 +171,8 @@ export class Packet implements DumlPacket {
     this.ackType = this.commandTypeRaw >> 5;
     this.encryptionType = this.commandTypeRaw & 0x0f;
     this.commandSet = this.raw.readUInt8(9);
-    this.commandPayload = this.raw.subarray(10, this.raw.length - 2);
+    this.command = this.raw.readUint8(10);
+    this.commandPayload = this.raw.subarray(11, this.raw.length - 2);
     this.crc = this.raw.readUInt16LE(this.raw.length - 2);
 
     this.changed = false;
@@ -200,9 +208,9 @@ export class Packet implements DumlPacket {
 
       set: (target: Packet, propertyName: keyof Packet, value: unknown) => {
         // Never let a command payload be set to undefined
-        if (['commandPayload'].includes(propertyName) && value === undefined) {
-          value = Buffer.alloc(0);
-        }
+        // if (['commandPayload'].includes(propertyName) && value === undefined) {
+        //   value = Buffer.alloc(0);
+        // }
 
         // If someone wants to change raw, just create a new object for them
         if (['raw'].includes(propertyName)) {
@@ -226,7 +234,7 @@ export class Packet implements DumlPacket {
 
   calculatePacket(generate = true) {
     if (generate) {
-      this.length = 12 + (this.commandPayload.length === 0 ? 1 : this.commandPayload.length);
+      this.length = 13 + ~~this.commandPayload?.length;
     }
     const buffer = Buffer.alloc(this.length);
 
@@ -255,12 +263,12 @@ export class Packet implements DumlPacket {
     buffer.writeUInt8(this.commandTypeRaw, 8);
     buffer.writeUInt8(this.commandSet, 9);
 
-    if (this.commandPayload.length > 0) {
+    buffer.writeUint8(this.command, 10);
+
+    if (this.commandPayload?.length > 0) {
       for (let i = 0; i < this.commandPayload.length; i++) {
-        buffer.writeUInt8(this.commandPayload.at(i), 10 + i);
+        buffer.writeUInt8(this.commandPayload.at(i), 11 + i);
       }
-    } else {
-      buffer.writeUInt8(0x00, 10);
     }
 
     if (generate) {
@@ -279,20 +287,28 @@ export class Packet implements DumlPacket {
   }
 
   toShortString(): string {
+    let commandSubType = 'UNKNOWN';
+    if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
+      commandSubType = GeneralTypes[this.command];
+    }
+
     return (
       `Source (0x${this.sourceRaw.toString(16)}), ` +
       `Ver (0x${this.version.toString(16)}), ` +
       `Dest (0x${this.destinationRaw.toString(16)}), ` +
       `Sequence (0x${this.sequenceID.toString(16)}), ` +
       `Cmd Type (0x${this.commandTypeRaw.toString(16)}), ` +
+      `Cmd SubType ${commandSubType} (0x${this.command.toString(16)}), ` +
       `Cmd Payload (0x${this.commandPayload.toString('hex')})`
-      // `Cmd Payload (0x${[...new Uint8Array(this.commandPayload)]
-      //   .map((x) => x.toString(16).padStart(2, '0'))
-      //   .join('')})`
     );
   }
 
   toLongString(): string {
+    let commandSubType = 'UNKNOWN';
+    if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
+      commandSubType = GeneralTypes[this.command];
+    }
+
     return (
       `Packet HEX(${this.toHexString()})\n` +
       `Valid CRC:\t${this.isValid()}\n` +
@@ -312,11 +328,9 @@ export class Packet implements DumlPacket {
       `Encryption:\t${EncryptionType[this.encryptionType]}\t(0x${this.encryptionType.toString(
         16,
       )})\n` +
-      `Cmd Set:\t0x${this.commandSet.toString(16)}\n` +
-      `Cmd Payload (0x${this.commandPayload.toString('hex')})` +
-      // `Cmd Payload:\t0x${[...new Uint8Array(this.commandPayload)]
-      //   .map((x) => x.toString(16).padStart(2, '0'))
-      //   .join('')}\n` +
+      `Cmd Set:\t${SetType[this.commandSet]}\t(0x${this.commandSet.toString(16)})\n` +
+      `Cmd SubType:\t${commandSubType} (0x${this.command.toString(16)})\n` +
+      `Cmd Payload:\t(0x${this.commandPayload.toString('hex')})\n` +
       `CRC16:\t\t0x${this.crc.toString(16)}`
     );
   }

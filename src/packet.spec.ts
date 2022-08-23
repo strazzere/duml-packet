@@ -1,17 +1,17 @@
 import { Packet } from './packet';
-import { AckType, CommandType, DeviceType, EncryptionType } from './types';
+import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType } from './types';
 import { expect } from 'chai';
 
 describe('packet tests', () => {
   it('can utilize specialty to string methods', () => {
-    const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
+    const expected = Buffer.from('550E04662A28DE2F40004F0154c8', 'hex');
     const packet = Packet.fromBuffer(expected);
     packet.toShortString();
     packet.toLongString();
   });
 
   it('can allow different constructor usages', () => {
-    const expected = Buffer.from('550E04662A28DE2F40005B01A53A', 'hex');
+    const expected = Buffer.from('550E04662A28DE2F40004F0154c8', 'hex');
     let packet = new Packet({
       version: 0x1,
       length: 0x0e,
@@ -21,8 +21,9 @@ describe('packet tests', () => {
       sequenceID: 0xde2f,
       commandTypeRaw: 0x40,
       commandSet: 0x00,
-      commandPayload: Buffer.from('5b01', 'hex'),
-      crc: 0x3aa5,
+      command: GeneralTypes.GET_CFG_FILE,
+      commandPayload: Buffer.from('01', 'hex'),
+      crc: 0xc854,
     });
 
     expect(packet.toBuffer(), 'created with raw tags did not match').to.deep.equal(expected);
@@ -41,9 +42,10 @@ describe('packet tests', () => {
         commandType: CommandType.REQUEST,
         ackType: AckType.ACK,
         encryptionType: EncryptionType.NONE,
-        commandSet: 0x00,
-        commandPayload: Buffer.from('5b01', 'hex'),
-        crc: 0x3aa5,
+        commandSet: SetType.GENERAL,
+        command: GeneralTypes.GET_CFG_FILE,
+        commandPayload: Buffer.from('01', 'hex'),
+        crc: 0xc854,
       },
       false,
     );
@@ -71,8 +73,9 @@ describe('packet tests', () => {
     expect(packet.ackType, 'ack type bad').to.equal(AckType.ACK);
     expect(packet.encryptionType, 'encryption type bad').to.equal(EncryptionType.NONE);
     expect(packet.commandSet, 'command set bad').to.equal(0x00);
+    expect(packet.command, 'command set bad').to.equal(0x5b);
     expect(packet.commandPayload.buffer, 'command payload bad').to.deep.equal(
-      Buffer.from('5b01', 'hex').buffer,
+      Buffer.from('01', 'hex').buffer,
     );
     expect(packet.crc, 'crc bad').to.equal(0x3aa5);
 
@@ -103,8 +106,9 @@ describe('packet tests', () => {
     expect(packet.ackType, 'ack type changed bad').to.equal(AckType.ACK);
     expect(packet.encryptionType, 'encryption type changed bad').to.equal(EncryptionType.NONE);
     expect(packet.commandSet, 'command set changed bad').to.equal(0x00);
+    expect(packet.command, 'command set changed bad').to.equal(0x5b);
     expect(packet.commandPayload.buffer, 'command payload changed bad').to.deep.equal(
-      Buffer.from('5b01', 'hex').buffer,
+      Buffer.from('01', 'hex').buffer,
     );
     expect(packet.crc, 'crc did not change').to.not.equal(0x3aa5);
 
@@ -131,11 +135,9 @@ describe('packet tests', () => {
     const packet = Packet.fromBuffer(test);
 
     packet.commandPayload = undefined;
-    expect(packet.commandPayload.buffer, 'payload did not change to empty set').to.deep.equal(
-      Buffer.alloc(0).buffer,
-    );
+    expect(packet.commandPayload, 'payload did not change to empty set').to.deep.equal(undefined);
 
-    let expectedChange = Buffer.from('550D04332A28DE2F4000005D4F', 'hex');
+    let expectedChange = Buffer.from('550D04332A28DE2F40005B0BA3', 'hex');
     expect(packet.toBuffer(), 'buffer did not change to no array').to.deep.equal(expectedChange);
 
     packet.commandPayload = Buffer.from('010203', 'hex');
@@ -143,7 +145,7 @@ describe('packet tests', () => {
       Buffer.from('010203', 'hex').buffer,
     );
 
-    expectedChange = Buffer.from('550F04A22A28DE2F4000010203B3DC', 'hex');
+    expectedChange = Buffer.from('551004562A28DE2F40005B0102032CB7', 'hex');
     expect(packet.toBuffer(), 'buffer does not has full array change').to.deep.equal(
       expectedChange,
     );
@@ -153,7 +155,7 @@ describe('packet tests', () => {
       Buffer.from('020203', 'hex').buffer,
     );
 
-    expectedChange = Buffer.from('550F04A22A28DE2F4000020203D733', 'hex');
+    expectedChange = Buffer.from('551004562A28DE2F40005B0202034858', 'hex');
     expect(packet.toBuffer(), 'buffer does not has full array change').to.deep.equal(
       expectedChange,
     );
