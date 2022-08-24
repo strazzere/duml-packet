@@ -347,3 +347,5 @@ export class Packet implements DumlPacket {
     return new Packet({ raw: buffer }, autoCalculate);
   }
 }
+
+// module.exports = Packet
