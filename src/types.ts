@@ -185,6 +185,7 @@ export enum GeneralTypes {
   TEST_MODE,
   PLAY_SOUND,
 
+  START_FTP = 0x5b,
   UAV_FLU_INFO = 0x5c,
 
   AUTO_TEST_INFO = 0x60,
