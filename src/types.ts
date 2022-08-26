@@ -247,3 +247,19 @@ export enum RadioTypes {}
 import { DumlPacket } from './packet';
 
 export type Packet = DumlPacket;
+
+module.exports = {
+  DeviceType,
+  CommandType,
+  AckType,
+  EncryptionType,
+  SetType,
+
+  GeneralTypes,
+  SpecialTypes,
+  CameraTypes,
+  FlightControllerTypes,
+  GimbalTypes,
+  CenterBoardTypes,
+  RadioTypes,
+};
