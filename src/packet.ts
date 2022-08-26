@@ -346,6 +346,10 @@ export class Packet implements DumlPacket {
   static fromBuffer(buffer: Buffer, autoCalculate = true) {
     return new Packet({ raw: buffer }, autoCalculate);
   }
+
+  static fromHexString(hexString: string, autoCalculate = true) {
+    return new Packet({ raw: Buffer.from(hexString, 'hex') }, autoCalculate);
+  }
 }
 
 module.exports = {

@@ -10,6 +10,14 @@ describe('packet tests', () => {
     packet.toLongString();
   });
 
+  it('can parse a packet from hex string', () => {
+    const packetHex = '550E04662A28DE2F40004F0154c8';
+    const expected = Buffer.from(packetHex, 'hex');
+    const packet = Packet.fromHexString(packetHex);
+
+    expect(packet.toBuffer(), 'should be identical').to.deep.equal(expected);
+  });
+
   it('can allow different constructor usages', () => {
     const expected = Buffer.from('550E04662A28DE2F40004F0154c8', 'hex');
     let packet = new Packet({
