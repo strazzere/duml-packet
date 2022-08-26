@@ -2,7 +2,7 @@
   "name": "duml-packet",
   "version": "1.0.0",
   "description": "For use when parsing and modifying DUML packets for DJI drones",
-  "main": "dist/cli.js",
+  "main": "dist/packet.js",
   "bin": {
     "dumlpacket": "./dist/cli.js"
   },
@@ -11,7 +11,7 @@
     "arkit": "npx arkit -o docs/arkit.svg",
     "lint": "eslint . --ext .ts",
     "prettier-format": "prettier --config .prettierrc package.json tsconfig.json './src/**/*.ts' --write",
-    "build": "tsc --declaration",
+    "prepare": "tsc --declaration",
     "cli": "ts-node dist/cli.js",
     "test": "mocha",
     "test:coverage": "nyc mocha",
