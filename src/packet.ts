@@ -348,4 +348,6 @@ export class Packet implements DumlPacket {
   }
 }
 
-// module.exports = Packet
+module.exports = {
+  Packet
+}
