@@ -36,7 +36,6 @@ describe('packet tests', () => {
 
     expect(packet.toBuffer(), 'created with raw tags did not match').to.deep.equal(expected);
 
-    packet = undefined;
     packet = new Packet(
       {
         version: 0x1,
@@ -82,7 +81,7 @@ describe('packet tests', () => {
     expect(packet.encryptionType, 'encryption type bad').to.equal(EncryptionType.NONE);
     expect(packet.commandSet, 'command set bad').to.equal(0x00);
     expect(packet.command, 'command set bad').to.equal(0x5b);
-    expect(packet.commandPayload.buffer, 'command payload bad').to.deep.equal(
+    expect(packet.commandPayload?.buffer, 'command payload bad').to.deep.equal(
       Buffer.from('01', 'hex').buffer,
     );
     expect(packet.crc, 'crc bad').to.equal(0x3aa5);
@@ -115,7 +114,7 @@ describe('packet tests', () => {
     expect(packet.encryptionType, 'encryption type changed bad').to.equal(EncryptionType.NONE);
     expect(packet.commandSet, 'command set changed bad').to.equal(0x00);
     expect(packet.command, 'command set changed bad').to.equal(0x5b);
-    expect(packet.commandPayload.buffer, 'command payload changed bad').to.deep.equal(
+    expect(packet.commandPayload?.buffer, 'command payload changed bad').to.deep.equal(
       Buffer.from('01', 'hex').buffer,
     );
     expect(packet.crc, 'crc did not change').to.not.equal(0x3aa5);

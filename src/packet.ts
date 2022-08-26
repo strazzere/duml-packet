@@ -67,7 +67,7 @@ export class Packet implements DumlPacket {
 
   commandSet: number;
   command: number;
-  commandPayload: Buffer;
+  commandPayload: Buffer | undefined;
 
   crc: number;
 

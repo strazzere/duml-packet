@@ -6,12 +6,12 @@
   "bin": {
     "dumlpacket": "./dist/cli.js"
   },
-  "types": "./src/packet.d.ts",
+  "types": "./dist/packet.d.ts",
   "scripts": {
     "arkit": "npx arkit -o docs/arkit.svg",
     "lint": "eslint . --ext .ts",
     "prettier-format": "prettier --config .prettierrc package.json tsconfig.json './src/**/*.ts' --write",
-    "prepare": "tsc --declaration",
+    "prepare": "tsc",
     "cli": "ts-node dist/cli.js",
     "test": "mocha",
     "test:coverage": "nyc mocha",
