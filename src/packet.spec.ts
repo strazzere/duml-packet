@@ -3,6 +3,21 @@ import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType
 import { expect } from 'chai';
 
 describe('packet tests', () => {
+  it('should not nerf destinationRaw', () => {
+    // This is to prevent regression where we improperly parsed sourceType and destinationType
+    const expected = Buffer.from('550e04662a2d123440003211e1ad', 'hex');
+    const packet = new Packet({
+      sourceRaw: 0x2a,
+      destinationRaw: 0x2d,
+      sequenceID: 0x1234,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      command: 0x32,
+      commandPayload: Buffer.from('11', 'hex'),
+    });
+    expect(packet.toBuffer(), 'should be identical').to.deep.equal(expected);
+  });
+
   it('can utilize specialty to string methods', () => {
     const expected = Buffer.from('550E04662A28DE2F40004F0154c8', 'hex');
     const packet = Packet.fromBuffer(expected);

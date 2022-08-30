@@ -89,7 +89,7 @@ export class Packet implements DumlPacket {
 
       this.sourceRaw = packet.sourceRaw ? packet.sourceRaw : 0x00;
       if (packet.sourceRaw) {
-        this.sourceType = this.sourceRaw & 0xe;
+        this.sourceType = this.sourceRaw & 0x1f;
         this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
       } else {
         this.sourceType = packet.sourceType ? packet.sourceType : DeviceType.ANY;
@@ -99,7 +99,7 @@ export class Packet implements DumlPacket {
 
       this.destinationRaw = packet.destinationRaw ? packet.destinationRaw : 0x00;
       if (packet.destinationRaw) {
-        this.destinationType = this.destinationRaw & 0xe;
+        this.destinationType = this.destinationRaw & 0x1f;
         this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
       } else {
         this.destinationType = packet.destinationType ? packet.destinationType : DeviceType.ANY;
@@ -158,11 +158,11 @@ export class Packet implements DumlPacket {
 
     this.raw = packet.raw;
     this.sourceRaw = this.raw.readUInt8(4);
-    this.sourceType = this.sourceRaw & 0xe;
+    this.sourceType = this.sourceRaw & 0x1f;
     this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
 
     this.destinationRaw = this.raw.readUInt8(5);
-    this.destinationType = this.destinationRaw & 0xe;
+    this.destinationType = this.destinationRaw & 0x1f;
     this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
 
     this.sequenceID = this.raw.readUInt16BE(6);
