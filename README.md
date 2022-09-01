@@ -24,14 +24,14 @@ Length:			14	(0xe)
 CRC Head:		0x66
 Source ID:		PC, 0x1 (0x2a)
 Dest ID:		LB_DM3XX_SKY, 0x1 (0x28)
-Sequence ID:	0xde2f
-Cmd Type (raw):	0x40
+Sequence ID:		0xde2f
+Cmd Type (raw):		0x40
 Cmd Type:		REQUEST	(0x0)
 Ack Type:		ACK	(0x2)
 Encryption:		NONE	(0x0)
 Cmd Set:		GENERAL	(0x0)
-Cmd SubType:	GET_CFG_FILE (0x4f)
-Cmd Payload:	(0x01)
+Cmd SubType:		GET_CFG_FILE (0x4f)
+Cmd Payload:		(0x01)
 CRC16:			0xc854
 ```
 
