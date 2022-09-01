@@ -1,0 +1,10 @@
+docs/**/*
+dumlpacket
+.eslintignore
+.eslintrc
+.mocharc.js
+.prettierignore
+.prettierrc
+.github/
+coverage/**/*
+.nyc_output/**/*
