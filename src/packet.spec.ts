@@ -3,6 +3,15 @@ import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType
 import { expect } from 'chai';
 
 describe('packet tests', () => {
+  it('can parse heartbeat packets correctly', () => {
+    const expected = Buffer.from(
+      '552c0436030a2b3f00000ec320203139303530205b442d4f53445d646973706c61795f6d6f646520360073e85528040d030a2c3f00000ea320203139303530205b442d52435d3120312028307c30297c30008128',
+      'hex',
+    );
+    const packet = Packet.fromBuffer(expected);
+    packet.toShortString();
+  });
+
   it('should not nerf destinationRaw', () => {
     // This is to prevent regression where we improperly parsed sourceType and destinationType
     const expected = Buffer.from('550e04662a2d123440003211e1ad', 'hex');
@@ -213,5 +222,59 @@ describe('packet tests', () => {
       Packet.fromBuffer(Buffer.from('55D1FFBEEFD1FFBEEFD1FFBEEF', 'hex'));
     };
     expect(badLengthLargeConstructor).to.throw('Packet length larger than provided buffer');
+  });
+
+  it('generates a sequence ID if one is not given for a new packet', () => {
+    const unexpected = 0x00;
+    const packet = new Packet({
+      version: 0x1,
+      length: 0x0e,
+      crcHead: 0x66,
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      command: GeneralTypes.GET_CFG_FILE,
+      commandPayload: Buffer.from('01', 'hex'),
+      crc: 0xc854,
+    });
+
+    expect(packet.sequenceID, 'expected a non-empty sequence id').to.not.equal(unexpected);
+  });
+
+  it('keeps a sequence ID if one is given for a new packet', () => {
+    let expected = 0x00;
+    let packet = new Packet({
+      version: 0x1,
+      length: 0x0e,
+      crcHead: 0x66,
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      sequenceID: 0x0000,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      command: GeneralTypes.GET_CFG_FILE,
+      commandPayload: Buffer.from('01', 'hex'),
+      crc: 0xc854,
+    });
+
+    expect(packet.sequenceID, 'expected a "zero" sequence id').to.equal(expected);
+
+    expected = 0x01;
+    packet = new Packet({
+      version: 0x1,
+      length: 0x0e,
+      crcHead: 0x66,
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      sequenceID: 0x0001,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      command: GeneralTypes.GET_CFG_FILE,
+      commandPayload: Buffer.from('01', 'hex'),
+      crc: 0xc854,
+    });
+
+    expect(packet.sequenceID, 'expected a specific sequence id').to.equal(expected);
   });
 });

@@ -74,6 +74,12 @@ export class Packet implements DumlPacket {
   changed: boolean;
   emitter: EventEmitter;
 
+  /**
+   *
+   * @param {PacketOptions} packet
+   * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
+   * @returns {Packet}
+   */
   constructor(packet: PacketOptions, autoCalculate = true) {
     // If any raw types have been passed, then they will take presidence
     // over other parameters passed in
@@ -107,7 +113,11 @@ export class Packet implements DumlPacket {
         this.destinationRaw = this.destinationType | (this.destinationIndex << 0x5);
       }
 
-      this.sequenceID = packet.sequenceID ? packet.sequenceID : 0x0000;
+      if (packet.sequenceID !== undefined) {
+        this.sequenceID = packet.sequenceID;
+      } else {
+        this.randomSequenceID();
+      }
 
       this.commandTypeRaw = packet.commandTypeRaw ? packet.commandTypeRaw : 0x00;
       if (packet.commandTypeRaw) {
@@ -232,6 +242,21 @@ export class Packet implements DumlPacket {
     return new Proxy(packet, handler);
   }
 
+  /**
+   * Randomize the Sequence ID for this packet
+   */
+  randomSequenceID() {
+    this.sequenceID = Math.floor(Math.random() * 65534) + 1;
+  }
+
+  /**
+   * (Re)Calculate the packet based on field changes.
+   *
+   * @param {boolean} [generate=true] if the packet should use the provided values (length, crc, etc)
+   * or generate based on the length of command payload and generate a new crc. The default
+   * action is to generate, this is likely only something to turn off if you know what you are
+   * doing and need to fuzz something.
+   */
   calculatePacket(generate = true) {
     if (generate) {
       this.length = 13 + ~~this.commandPayload?.length;
@@ -279,6 +304,9 @@ export class Packet implements DumlPacket {
     this.raw = buffer;
   }
 
+  /**
+   * @returns {boolean} whether the packet has valid crcs (header and whole packet)
+   */
   isValid(): boolean {
     return (
       this.crcHead === crc8Wire(this.raw.subarray(0, 3)) &&
@@ -286,6 +314,9 @@ export class Packet implements DumlPacket {
     );
   }
 
+  /**
+   * @returns {string} an easy to parse (longish) one line string to represent the packet
+   */
   toShortString(): string {
     let commandSubType = 'UNKNOWN';
     if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
@@ -303,6 +334,9 @@ export class Packet implements DumlPacket {
     );
   }
 
+  /**
+   * @returns {string} a multi-line string to represent all the values of the packet in a readable format
+   */
   toLongString(): string {
     let commandSubType = 'UNKNOWN';
     if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
@@ -335,19 +369,39 @@ export class Packet implements DumlPacket {
     );
   }
 
+  /**
+   * @returns {string} a hex representation of the underlying packet as a string
+   */
   toHexString(): string {
     return this.toBuffer().toString('hex');
   }
 
+  /**
+   * @returns {Buffer} the raw buffer representation of the packet
+   */
   toBuffer(): Buffer {
     return this.raw;
   }
 
-  static fromBuffer(buffer: Buffer, autoCalculate = true) {
+  /**
+   * Create a new Packet object from a provided Buffer.
+   *
+   * @param {Buffer} buffer data that represents the packet
+   * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
+   * @returns {Packet}
+   */
+  static fromBuffer(buffer: Buffer, autoCalculate = true): Packet {
     return new Packet({ raw: buffer }, autoCalculate);
   }
 
-  static fromHexString(hexString: string, autoCalculate = true) {
+  /**
+   * Create a new Packet object from a provided hex string.
+   *
+   * @param {string} hexString data that represents the packet
+   * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
+   * @returns {Packet}
+   */
+  static fromHexString(hexString: string, autoCalculate = true): Packet {
     return new Packet({ raw: Buffer.from(hexString, 'hex') }, autoCalculate);
   }
 }
