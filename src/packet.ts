@@ -330,7 +330,7 @@ export class Packet implements DumlPacket {
       `Sequence (0x${this.sequenceID.toString(16)}), ` +
       `Cmd Type (0x${this.commandTypeRaw.toString(16)}), ` +
       `Cmd SubType ${commandSubType} (0x${this.command.toString(16)}), ` +
-      `Cmd Payload (0x${this.commandPayload.toString('hex')})`
+      `Cmd Payload ${this.commandPayload ? `(0x${this.commandPayload.toString('hex')})` : 'NULL'})`
     );
   }
 
@@ -364,7 +364,9 @@ export class Packet implements DumlPacket {
       )})\n` +
       `Cmd Set:\t${SetType[this.commandSet]}\t(0x${this.commandSet.toString(16)})\n` +
       `Cmd SubType:\t${commandSubType} (0x${this.command.toString(16)})\n` +
-      `Cmd Payload:\t(0x${this.commandPayload.toString('hex')})\n` +
+      `Cmd Payload:\t${
+        this.commandPayload ? `(0x${this.commandPayload.toString('hex')})` : 'NULL'
+      }\n` +
       `CRC16:\t\t0x${this.crc.toString(16)}`
     );
   }

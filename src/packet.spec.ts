@@ -27,6 +27,19 @@ describe('packet tests', () => {
     expect(packet.toBuffer(), 'should be identical').to.deep.equal(expected);
   });
 
+  it('should allow empty payload', () => {
+    const packet = new Packet({
+      sourceRaw: 0x2a,
+      destinationRaw: 0x2d,
+      sequenceID: 0x1234,
+      commandTypeRaw: 0x40,
+      commandSet: 0x00,
+      command: 0x32,
+    });
+    packet.toShortString();
+    packet.toLongString();
+  });
+
   it('can utilize specialty to string methods', () => {
     const expected = Buffer.from('550E04662A28DE2F40004F0154c8', 'hex');
     const packet = Packet.fromBuffer(expected);
