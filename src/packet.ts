@@ -194,7 +194,7 @@ export class Packet implements DumlPacket {
     return this;
   }
 
-  createPacketProxy(packet: Packet) {
+  private createPacketProxy(packet: Packet) {
     const handler = {
       get: (target: any, propertyName: any, receiver: unknown): unknown => {
         // Handle buffer differently since Chai has an odd time with it
@@ -245,7 +245,7 @@ export class Packet implements DumlPacket {
   /**
    * Randomize the Sequence ID for this packet
    */
-  randomSequenceID() {
+  public randomSequenceID() {
     this.sequenceID = Math.floor(Math.random() * 65534) + 1;
   }
 
@@ -257,7 +257,7 @@ export class Packet implements DumlPacket {
    * action is to generate, this is likely only something to turn off if you know what you are
    * doing and need to fuzz something.
    */
-  calculatePacket(generate = true) {
+  private calculatePacket(generate = true) {
     if (generate) {
       this.length = 13 + ~~this.commandPayload?.length;
     }
@@ -307,7 +307,7 @@ export class Packet implements DumlPacket {
   /**
    * @returns {boolean} whether the packet has valid crcs (header and whole packet)
    */
-  isValid(): boolean {
+  public isValid(): boolean {
     return (
       this.crcHead === crc8Wire(this.raw.subarray(0, 3)) &&
       this.crc === crc16KermitJam(this.raw.subarray(0, this.raw.length - 2))
@@ -317,7 +317,7 @@ export class Packet implements DumlPacket {
   /**
    * @returns {string} an easy to parse (longish) one line string to represent the packet
    */
-  toShortString(): string {
+  public toShortString(): string {
     let commandSubType = 'UNKNOWN';
     if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
       commandSubType = GeneralTypes[this.command];
@@ -337,7 +337,7 @@ export class Packet implements DumlPacket {
   /**
    * @returns {string} a multi-line string to represent all the values of the packet in a readable format
    */
-  toLongString(): string {
+  public toLongString(): string {
     let commandSubType = 'UNKNOWN';
     if (this.commandSet === SetType.GENERAL && GeneralTypes[this.command]) {
       commandSubType = GeneralTypes[this.command];
@@ -374,14 +374,14 @@ export class Packet implements DumlPacket {
   /**
    * @returns {string} a hex representation of the underlying packet as a string
    */
-  toHexString(): string {
+  public toHexString(): string {
     return this.toBuffer().toString('hex');
   }
 
   /**
    * @returns {Buffer} the raw buffer representation of the packet
    */
-  toBuffer(): Buffer {
+  public toBuffer(): Buffer {
     return this.raw;
   }
 
@@ -392,7 +392,7 @@ export class Packet implements DumlPacket {
    * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
    * @returns {Packet}
    */
-  static fromBuffer(buffer: Buffer, autoCalculate = true): Packet {
+  public static fromBuffer(buffer: Buffer, autoCalculate = true): Packet {
     return new Packet({ raw: buffer }, autoCalculate);
   }
 
@@ -403,11 +403,18 @@ export class Packet implements DumlPacket {
    * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
    * @returns {Packet}
    */
-  static fromHexString(hexString: string, autoCalculate = true): Packet {
+  public static fromHexString(hexString: string, autoCalculate = true): Packet {
     return new Packet({ raw: Buffer.from(hexString, 'hex') }, autoCalculate);
   }
 }
 
 module.exports = {
   Packet,
+
+  GeneralTypes,
+  DeviceType,
+  CommandType,
+  AckType,
+  EncryptionType,
+  SetType,
 };

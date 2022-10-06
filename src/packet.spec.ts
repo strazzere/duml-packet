@@ -1,5 +1,6 @@
+/* eslint-disable prettier/prettier */
 import { Packet } from './packet';
-import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType } from './types';
+import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType } from './packet';
 import { expect } from 'chai';
 
 describe('packet tests', () => {

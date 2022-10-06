@@ -10,7 +10,7 @@
   "scripts": {
     "arkit": "npx arkit -o docs/arkit.svg",
     "lint": "eslint . --ext .ts",
-    "prettier-format": "prettier --config .prettierrc package.json tsconfig.json './src/**/*.ts' --write",
+    "prettier-format": "prettier --config .prettierrc package.json tsconfig.json ./src/**/*.ts --write",
     "prepare": "tsc",
     "cli": "ts-node dist/cli.js",
     "test": "mocha",
