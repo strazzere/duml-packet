@@ -330,7 +330,7 @@ export class Packet implements DumlPacket {
       `Sequence (0x${this.sequenceID.toString(16)}), ` +
       `Cmd Type (0x${this.commandTypeRaw.toString(16)}), ` +
       `Cmd SubType ${commandSubType} (0x${this.command.toString(16)}), ` +
-      `Cmd Payload ${this.commandPayload ? `(0x${this.commandPayload.toString('hex')})` : 'NULL'})`
+      `Cmd Payload ${this.commandPayload ? `(0x${this.commandPayload.toString('hex')})` : 'NULL'}`
     );
   }
 
