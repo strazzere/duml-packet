@@ -1,6 +1,6 @@
 {
   "name": "duml-packet",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "For use when parsing and modifying DUML packets for DJI drones",
   "main": "dist/packet.js",
   "bin": {
