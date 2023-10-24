@@ -209,7 +209,7 @@ export class Packet implements DumlPacket {
           typeof target[propertyName as keyof Packet] === 'object' &&
           target[propertyName as keyof Packet] !== null
         ) {
-          return new Proxy<object>(target[propertyName as keyof Packet], handler);
+          return new Proxy<object>(target[propertyName as keyof Packet] as Buffer, handler);
         }
 
         // Properly bind functions as needed
