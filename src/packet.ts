@@ -194,22 +194,22 @@ export class Packet implements DumlPacket {
     return this;
   }
 
-  private createPacketProxy(packet: Packet) {
+  private createPacketProxy(packet: Packet): Packet {
     const handler = {
-      get: (target: any, propertyName: any, receiver: unknown): unknown => {
+      get: (target: Packet, propertyName: string, receiver: unknown): unknown => {
         // Handle buffer differently since Chai has an odd time with it
         if (['buffer', 'length'].includes(propertyName)) {
-          return target[propertyName];
+          return target[propertyName as keyof Packet];
         }
 
         // We want to proxy these special properties
         const property = Reflect.get(target, propertyName, receiver);
         if (
           ['commandPayload', 'raw'].includes(propertyName) &&
-          typeof target[propertyName] === 'object' &&
-          target[propertyName] !== null
+          typeof target[propertyName as keyof Packet] === 'object' &&
+          target[propertyName as keyof Packet] !== null
         ) {
-          return new Proxy(target[propertyName], handler);
+          return new Proxy<object>(target[propertyName as keyof Packet], handler);
         }
 
         // Properly bind functions as needed
@@ -239,7 +239,7 @@ export class Packet implements DumlPacket {
       },
     };
 
-    return new Proxy(packet, handler);
+    return new Proxy<Packet>(packet, handler);
   }
 
   /**
@@ -418,3 +418,5 @@ module.exports = {
   EncryptionType,
   SetType,
 };
+
+export { GeneralTypes, DeviceType, CommandType, AckType, EncryptionType, SetType };
