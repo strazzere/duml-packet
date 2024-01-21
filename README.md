@@ -40,5 +40,5 @@ CRC16:			0xc854
 ```
 Licensed under ISC License
 
-Copyright 2022 Tim 'diff' Strazzere <diff@protonmail.com>
+Copyright 2022-2024 Tim 'diff' Strazzere <diff@protonmail.com>
 ```
