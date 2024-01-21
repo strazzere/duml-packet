@@ -12,9 +12,9 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "*": ["node_modules/*"]
+      "*": ["node_modules/*"],
     },
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "include": ["src/**/*"],
   "exclude": [
@@ -22,6 +22,6 @@
     "node_modules",
     "./node_modules",
     "./node_modules/**/*",
-    "./node_modules/@types/node/index.d.ts"
-  ]
+    "./node_modules/@types/node/index.d.ts",
+  ],
 }

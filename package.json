@@ -1,6 +1,6 @@
 {
   "name": "duml-packet",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "For use when parsing and modifying DUML packets for DJI drones",
   "main": "dist/packet.js",
   "bin": {
@@ -57,7 +57,7 @@
     "ts-node": "^10.9.1",
     "typescript": "5.3.3"
   },
-  "dependencies": {
+  "optionalDependencies": {
     "yargs": "^17.7.1"
   }
 }
