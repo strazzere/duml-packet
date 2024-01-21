@@ -4,6 +4,7 @@ dumlpacket
 .eslintignore
 .eslintrc
 .mocharc.js
+.mocharc.json
 .prettierignore
 .prettierrc
 .github/
