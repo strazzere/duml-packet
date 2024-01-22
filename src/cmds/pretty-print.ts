@@ -1,4 +1,4 @@
-import { Packet } from '../packet';
+import { Packet } from '../packet.js';
 import { Arguments } from 'yargs';
 
 exports.command = 'pretty-print <buffer>';

@@ -1,0 +1,20 @@
+{  
+  "exit": true,
+  "bail": false,
+  "slow": 1000,
+  "recursive": true,
+  "extension": [
+    "ts"
+  ],
+  "spec": [
+    "src/**/*.spec.ts"
+  ],
+  "require": [
+    "ts-node/register",
+    "source-map-support/register"
+  ],
+  "node-option": [
+    "experimental-specifier-resolution=node",
+    "loader=ts-node/esm"
+  ]
+}

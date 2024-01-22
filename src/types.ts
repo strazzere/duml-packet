@@ -244,22 +244,6 @@ export enum CenterBoardTypes {}
 
 export enum RadioTypes {}
 
-import { DumlPacket } from './packet';
+import { DumlPacket } from './packet.js';
 
 export type Packet = DumlPacket;
-
-module.exports = {
-  DeviceType,
-  CommandType,
-  AckType,
-  EncryptionType,
-  SetType,
-
-  GeneralTypes,
-  SpecialTypes,
-  CameraTypes,
-  FlightControllerTypes,
-  GimbalTypes,
-  CenterBoardTypes,
-  RadioTypes,
-};

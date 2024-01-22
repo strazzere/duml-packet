@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { crc8Wire, crc16KermitJam } from './crc';
+import { crc8Wire, crc16KermitJam } from './crc.js';
 
 import {
   PacketOptions,
@@ -9,7 +9,7 @@ import {
   AckType,
   EncryptionType,
   SetType,
-} from './types';
+} from './types.js';
 
 export interface DumlPacket {
   raw: Buffer;
@@ -407,16 +407,5 @@ export class Packet implements DumlPacket {
     return new Packet({ raw: Buffer.from(hexString, 'hex') }, autoCalculate);
   }
 }
-
-module.exports = {
-  Packet,
-
-  GeneralTypes,
-  DeviceType,
-  CommandType,
-  AckType,
-  EncryptionType,
-  SetType,
-};
 
 export { GeneralTypes, DeviceType, CommandType, AckType, EncryptionType, SetType };
