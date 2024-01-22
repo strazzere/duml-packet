@@ -244,6 +244,4 @@ export enum CenterBoardTypes {}
 
 export enum RadioTypes {}
 
-import { DumlPacket } from './packet.js';
-
-export type Packet = DumlPacket;
+export { Packet, DumlPacket } from './packet.js';

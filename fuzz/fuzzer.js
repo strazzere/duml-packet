@@ -1,4 +1,4 @@
-import { Packet } from '../dist/packet.js';
+import { Packet } from '../dist/packet';
 
 function fuzz(buffer) {
     try {

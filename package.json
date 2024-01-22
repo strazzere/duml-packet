@@ -2,29 +2,32 @@
   "name": "duml-packet",
   "version": "1.0.8",
   "description": "For use when parsing and modifying DUML packets for DJI drones",
-  "exports": "./dist/packet.js",
+  "exports": "./dist/bundle.js",
   "bin": {
     "dumlpacket": "./dist/cli.js"
   },
   "type": "module",
-  "types": "./dist/types.d.ts",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "arkit": "npx arkit -o docs/arkit.svg",
+    "build": "tsc -p . && rollup -c rollup.config.js",
     "lint": "eslint . --ext .ts",
-    "prettier-format": "prettier --config .prettierrc package.json tsconfig.json ./src/**/*.ts --write",
-    "prepare": "tsc",
-    "prepare:defs": "tsc --declaration --outDir dist/ --emitDeclarationOnly",
+    "prettier-format": "prettier --config .prettierrc .mocharc.json rollup.config.js package.json tsconfig.json ./src/**/*.ts --write",
     "cli": "ts-node dist/cli.js",
     "test": "mocha",
     "test:coverage": "c8 mocha",
     "test:coverage:html": "c8 --reporter=html --reporter=text mocha",
     "package": "pkg . --output dumlpacket",
-    "prepublishOnly": "npm run prepare && npm run prepare:defs",
+    "prepublishOnly": "npm run build",
     "postpublish": "rm -r dist"
   },
   "pkg": {
     "scripts": "dist/**/*.js"
   },
+  "files": [
+    "./dist/index.d.ts",
+    "./dist/bundle.js",
+    "./dist/bundle.js.map"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/strazzere/duml-packet.git"
@@ -41,11 +44,11 @@
   },
   "homepage": "https://github.com/strazzere/duml-packet#readme",
   "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "@types/yargs": "^17.0.24",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
-    "arkit": "^1.6.4",
     "c8": "^9.1.0",
     "chai": "^5.0.0",
     "eslint": "^8.38.0",
@@ -54,6 +57,8 @@
     "mocha": "^10.2.0",
     "pkg": "^5.8.1",
     "prettier": "^3.0.3",
+    "rollup": "^4.9.6",
+    "rollup-plugin-dts": "^6.1.0",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.1",
     "typescript": "5.3.3"

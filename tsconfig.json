@@ -1,16 +1,17 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "ES2022",
     "esModuleInterop": true,
-    "target": "es2021",
+    "target": "es2022",
     "noImplicitAny": true,
-    "moduleResolution": "node",
     "sourceMap": true,
+    "moduleResolution": "node",
     "outDir": "dist",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "declaration": true,
     "paths": {
       "*": ["node_modules/*"],
     },
@@ -20,6 +21,7 @@
   "exclude": [
     "src/**/*.spec.ts",
     "node_modules",
+    "dist",
     "./node_modules",
     "./node_modules/**/*",
     "./node_modules/@types/node/index.d.ts",
