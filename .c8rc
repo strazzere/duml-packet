@@ -1,0 +1,11 @@
+{
+  "check-coverage": true,
+  "reports-dir": "./coverage/",
+  "branches": 80,
+  "functions": 80,
+  "lines": 80,
+  "statements": 80,
+  "exclude": [
+    "src/**.spec.ts"
+  ]
+}

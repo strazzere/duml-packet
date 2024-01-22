@@ -47,7 +47,7 @@
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "arkit": "^1.6.4",
     "c8": "^9.1.0",
-    "chai": "^4.3.7",
+    "chai": "^5.0.0",
     "eslint": "^8.38.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
