@@ -1,5 +1,6 @@
 docs/**/*
 fuzz/**/*
+src/**/*.spec.ts
 dumlpacket
 .eslintignore
 .eslintrc
@@ -10,3 +11,4 @@ dumlpacket
 .github/
 coverage/**/*
 .nyc_output/**/*
+.c8rc
