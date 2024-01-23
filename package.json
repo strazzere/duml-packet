@@ -1,8 +1,11 @@
 {
   "name": "duml-packet",
-  "version": "1.0.9",
+  "version": "2.0.0",
   "description": "For use when parsing and modifying DUML packets for DJI drones",
-  "exports": "./dist/bundle.js",
+  "exports": {
+    "import": "./dist/bundle.js",
+    "require": "./dist/bundle.cjs"
+  },
   "bin": {
     "dumlpacket": "./dist/cli.js"
   },
@@ -26,7 +29,9 @@
   "files": [
     "./dist/index.d.ts",
     "./dist/bundle.js",
-    "./dist/bundle.js.map"
+    "./dist/bundle.js.map",
+    "./dist/bundle.cjs",
+    "./dist/bundle.cjs.map"
   ],
   "repository": {
     "type": "git",
