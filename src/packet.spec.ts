@@ -1,6 +1,13 @@
 /* eslint-disable prettier/prettier */
 import { Packet } from './packet.js';
-import { AckType, CommandType, DeviceType, EncryptionType, GeneralTypes, SetType } from './packet.js';
+import {
+  AckType,
+  CommandType,
+  DeviceType,
+  EncryptionType,
+  GeneralTypes,
+  SetType,
+} from './packet.js';
 import { expect } from 'chai';
 
 describe('packet tests', () => {
