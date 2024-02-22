@@ -2,21 +2,10 @@
 
 Parser for raw `DUML` packets and object for easy usage when manipilating them. Primarily for use when interacting with DJI drones.
 
-## Usage outside of node
-
-You can build this using the `package` script like so;
+## Example output
 
 ```
-# npm run package
-
-> duml-packet@1.0.0 package
-> pkg . --output dumlpacket
-
-> pkg@5.8.0
-> Targets not specified. Assuming:
-  node16-linux-x64
-
-$ ./dumlpacket pretty-print 550E04662A28DE2F40004F0154c8
+$ npm run cli --- pretty-print 550E04662A28DE2F40004F0154c8
 Packet HEX(550e04662a28de2f40004f0154c8)
 Valid CRC:		true
 Version:		0x1
