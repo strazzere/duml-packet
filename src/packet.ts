@@ -1,13 +1,13 @@
-import { EventEmitter } from "events";
+import type { EventEmitter } from "node:events";
 import { crc8Wire, crc16KermitJam } from "./crc.js";
 
 import {
-  PacketOptions,
-  GeneralTypes,
-  DeviceType,
-  CommandType,
   AckType,
+  CommandType,
+  DeviceType,
   EncryptionType,
+  GeneralTypes,
+  type PacketOptions,
   SetType,
 } from "./types.js";
 
@@ -166,20 +166,22 @@ export class Packet implements DumlPacket {
       this.calculatePacket(autoCalculate);
 
       if (autoCalculate) {
+        // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
         return this.createPacketProxy(this);
       }
 
+      // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
       return this;
     }
 
     if (!packet.raw || packet.raw.length < 13) {
       throw new Error(
-        `Buffer length smaller than minimum size allowed for valid packet`,
+        "Buffer length smaller than minimum size allowed for valid packet",
       );
     }
 
     if (packet.raw[0] !== 0x55) {
-      throw new Error(`Unexpected magic identifier`);
+      throw new Error("Unexpected magic identifier");
     }
 
     this.version = (packet.raw.readUInt16LE(1) & 0xfc00) >> 0xa;
@@ -212,9 +214,11 @@ export class Packet implements DumlPacket {
     this.changed = false;
 
     if (autoCalculate) {
+      // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
       return this.createPacketProxy(this);
     }
 
+    // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
     return this;
   }
 

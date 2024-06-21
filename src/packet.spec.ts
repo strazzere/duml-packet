@@ -1,3 +1,4 @@
+import { expect } from "chai";
 /* eslint-disable prettier/prettier */
 import { Packet } from "./packet.js";
 import {
@@ -8,7 +9,6 @@ import {
   GeneralTypes,
   SetType,
 } from "./packet.js";
-import { expect } from "chai";
 
 describe("packet tests", () => {
   it("can parse heartbeat packets correctly", () => {
