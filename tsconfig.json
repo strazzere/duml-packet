@@ -1,29 +1,29 @@
 {
-  "compilerOptions": {
-    "module": "ES2022",
-    "esModuleInterop": true,
-    "target": "es2022",
-    "noImplicitAny": true,
-    "sourceMap": true,
-    "moduleResolution": "node",
-    "outDir": "dist",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "declaration": true,
-    "paths": {
-      "*": ["node_modules/*"],
-    },
-    "skipLibCheck": true,
-  },
-  "include": ["src/**/*"],
-  "exclude": [
-    "src/**/*.spec.ts",
-    "node_modules",
-    "dist",
-    "./node_modules",
-    "./node_modules/**/*",
-    "./node_modules/@types/node/index.d.ts",
-  ],
+	"compilerOptions": {
+		"module": "ES2022",
+		"esModuleInterop": true,
+		"target": "es2022",
+		"noImplicitAny": true,
+		"sourceMap": true,
+		"moduleResolution": "node",
+		"outDir": "dist",
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+		"baseUrl": ".",
+		"declaration": true,
+		"paths": {
+			"*": ["node_modules/*"]
+		},
+		"skipLibCheck": true
+	},
+	"include": ["src/**/*"],
+	"exclude": [
+		"src/**/*.spec.ts",
+		"node_modules",
+		"dist",
+		"./node_modules",
+		"./node_modules/**/*",
+		"./node_modules/@types/node/index.d.ts"
+	]
 }

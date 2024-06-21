@@ -1,69 +1,62 @@
 {
-  "name": "duml-packet",
-  "version": "2.0.1",
-  "description": "For use when parsing and modifying DUML packets for DJI drones",
-  "exports": {
-    "import": "./dist/bundle.js",
-    "require": "./dist/bundle.cjs"
-  },
-  "bin": {
-    "dumlpacket": "./dist/cli.js"
-  },
-  "type": "module",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "tsc -p . && rollup -c rollup.config.js",
-    "lint": "eslint . --ext .ts",
-    "prettier-format": "prettier --config .prettierrc .mocharc.json rollup.config.js package.json tsconfig.json './src/**/*.ts' --write",
-    "cli": "ts-node dist/cli.js",
-    "test": "mocha",
-    "test:coverage": "c8 mocha",
-    "test:coverage:html": "c8 --reporter=html --reporter=text mocha",
-    "prepublishOnly": "npm run build",
-    "postpublish": "rm -r dist"
-  },
-  "files": [
-    "./dist/index.d.ts",
-    "./dist/bundle.js",
-    "./dist/bundle.js.map",
-    "./dist/bundle.cjs",
-    "./dist/bundle.cjs.map"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/strazzere/duml-packet.git"
-  },
-  "author": "Tim Strazzere <diff@protonmail.com>",
-  "keywords": [
-    "duml",
-    "drone",
-    "dji"
-  ],
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/strazzere/duml-packet/issues"
-  },
-  "homepage": "https://github.com/strazzere/duml-packet#readme",
-  "devDependencies": {
-    "@rollup/plugin-typescript": "^11.1.6",
-    "@types/chai": "^4.3.4",
-    "@types/mocha": "^10.0.1",
-    "@types/yargs": "^17.0.24",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "c8": "^9.1.0",
-    "chai": "^5.0.0",
-    "eslint": "^8.38.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.1",
-    "mocha": "^10.2.0",
-    "prettier": "^3.0.3",
-    "rollup": "^4.9.6",
-    "rollup-plugin-dts": "^6.1.0",
-    "source-map-support": "^0.5.21",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.4.2"
-  },
-  "optionalDependencies": {
-    "yargs": "^17.7.1"
-  }
+	"name": "duml-packet",
+	"version": "2.0.1",
+	"description": "For use when parsing and modifying DUML packets for DJI drones",
+	"exports": {
+		"import": "./dist/bundle.js",
+		"require": "./dist/bundle.cjs"
+	},
+	"bin": {
+		"dumlpacket": "./dist/cli.js"
+	},
+	"type": "module",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsc -p . && rollup -c rollup.config.js",
+		"lint": "npx @biomejs/biome check --write ./src",
+		"format": "npx @biomejs/biome format --write .mocharc.json rollup.config.js package.json tsconfig.json ./src",
+		"cli": "ts-node dist/cli.js",
+		"test": "mocha",
+		"test:coverage": "c8 mocha",
+		"test:coverage:html": "c8 --reporter=html --reporter=text mocha",
+		"prepublishOnly": "npm run build",
+		"postpublish": "rm -r dist"
+	},
+	"files": [
+		"./dist/index.d.ts",
+		"./dist/bundle.js",
+		"./dist/bundle.js.map",
+		"./dist/bundle.cjs",
+		"./dist/bundle.cjs.map"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/strazzere/duml-packet.git"
+	},
+	"author": "Tim Strazzere <diff@protonmail.com>",
+	"keywords": ["duml", "drone", "dji"],
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/strazzere/duml-packet/issues"
+	},
+	"homepage": "https://github.com/strazzere/duml-packet#readme",
+	"devDependencies": {
+		"@biomejs/biome": "1.8.2",
+		"@rollup/plugin-typescript": "^11.1.6",
+		"@types/chai": "^4.3.4",
+		"@types/mocha": "^10.0.1",
+		"@types/yargs": "^17.0.24",
+		"@typescript-eslint/eslint-plugin": "^7.0.2",
+		"c8": "^9.1.0",
+		"chai": "^5.0.0",
+		"mocha": "^10.2.0",
+		"rollup": "^4.9.6",
+		"rollup-plugin-dts": "^6.1.0",
+		"source-map-support": "^0.5.21",
+		"ts-node": "^10.9.1",
+		"typescript": "^5.4.2"
+	},
+	"optionalDependencies": {
+		"yargs": "^17.7.1"
+	}
 }
