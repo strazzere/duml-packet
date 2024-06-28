@@ -7,7 +7,7 @@
 		"require": "./dist/bundle.cjs"
 	},
 	"bin": {
-		"dumlpacket": "./dist/cli.js"
+		"dumlpacket": "dist/cli.js"
 	},
 	"type": "module",
 	"types": "./dist/index.d.ts",
@@ -45,7 +45,7 @@
 	},
 	"homepage": "https://github.com/strazzere/duml-packet#readme",
 	"devDependencies": {
-		"@biomejs/biome": "1.8.2",
+		"@biomejs/biome": "^1.8.3",
 		"@rollup/plugin-typescript": "^11.1.6",
 		"@types/chai": "^4.3.4",
 		"@types/mocha": "^10.0.1",
