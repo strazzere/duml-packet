@@ -1,12 +1,7 @@
-import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import yargs from "yargs/yargs";
+import { commands } from "./cmds/index.js";
 
-yargs(hideBin(process.argv))
-  // Use the commands directory to scaffold.
-  .commandDir("cmds")
-  .demandCommand()
-  // Enable strict mode.
-  .strict()
-  // Useful aliases.
-  .alias({ h: "help" })
-  .help().argv;
+const cli = yargs(hideBin(process.argv));
+
+cli.command(commands).demandCommand().strict().alias({ h: "help" }).help().argv;
