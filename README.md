@@ -1,9 +1,7 @@
 # DUML-Packet
-
 Parser for raw `DUML` packets and object for easy usage when manipilating them. Primarily for use when interacting with DJI drones.
 
 ## Example output
-
 ```
 $ npm run cli --- pretty-print 550E04662A28DE2F40004F0154c8
 Packet HEX(550e04662a28de2f40004f0154c8)
@@ -24,8 +22,10 @@ Cmd Payload:		(0x01)
 CRC16:			0xc854
 ```
 
-## License
+## Example usage
+Look at the [duml-beagle-parse](https://github.com/strazzere/duml-beagle-parse) project, which specifically parses Beagle USB csv exports, cutting and parsing out duml packets for faster analysis. 
 
+## License
 ```
 Licensed under ISC License
 
