@@ -46,7 +46,7 @@
 	"homepage": "https://github.com/strazzere/duml-packet#readme",
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.3",
-		"@rollup/plugin-typescript": "^11.1.6",
+		"@rollup/plugin-typescript": "^12.1.0",
 		"@types/chai": "^4.3.4",
 		"@types/mocha": "^10.0.1",
 		"@types/yargs": "^17.0.24",
