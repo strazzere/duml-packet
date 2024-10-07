@@ -57,6 +57,7 @@
 		"rollup-plugin-dts": "^6.1.0",
 		"source-map-support": "^0.5.21",
 		"ts-node": "^10.9.1",
+		"tslib": "^2.7.0",
 		"typescript": "^5.4.2"
 	},
 	"optionalDependencies": {
