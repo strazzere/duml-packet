@@ -11,6 +11,21 @@ import {
 } from "./packet.js";
 
 describe("packet tests", () => {
+  it("throws an error for invalid packet buffer", () => {
+    const invalidBuffer = Buffer.from(
+      "0b2a854d80003200000000000000000000000000000000000000000000000000003c7e",
+      "hex",
+    );
+
+    expect(() => {
+      Packet.fromBuffer(invalidBuffer);
+    }).to.throw("Unexpected magic identifier");
+
+    expect(() => {
+      new Packet(invalidBuffer);
+    }).to.throw("Unexpected magic identifier");
+  });
+
   it("can parse heartbeat packets correctly", () => {
     const expected = Buffer.from(
       "552c0436030a2b3f00000ec320203139303530205b442d4f53445d646973706c61795f6d6f646520360073e85528040d030a2c3f00000ea320203139303530205b442d52435d3120312028307c30297c30008128",

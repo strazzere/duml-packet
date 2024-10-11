@@ -76,11 +76,21 @@ export class Packet implements DumlPacket {
 
   /**
    *
-   * @param {PacketOptions} packet
+   * @param {PacketOptions} packetOptions
    * @param {boolean} [autoCalculate=true] if the underlying packet should be auto generated based on the data (fix any broken crcs, lengths, etc)
    * @returns {Packet}
    */
-  constructor(packet: PacketOptions, autoCalculate = true) {
+  constructor(packetOptions: PacketOptions, autoCalculate = true) {
+    let packet: PacketOptions;
+    // Catch mistakes where a buffer is directly passed in
+    if (packetOptions instanceof Buffer) {
+      packet = {
+        raw: packetOptions,
+      };
+    } else {
+      packet = packetOptions;
+    }
+
     // If any raw types have been passed, then they will take presidence
     // over other parameters passed in
     if (!packet.raw) {
