@@ -1,6 +1,6 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
-import { commands } from "./cmds/index.js";
+import { commands } from "./cmds/index";
 
 const cli = yargs(hideBin(process.argv));
 

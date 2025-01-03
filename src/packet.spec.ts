@@ -1,32 +1,30 @@
-import { expect } from "chai";
-/* eslint-disable prettier/prettier */
-import { Packet } from "./packet.js";
 import {
   AckType,
   CommandType,
   DeviceType,
   EncryptionType,
   GeneralTypes,
+  Packet,
   SetType,
-} from "./packet.js";
+} from "./packet";
 
 describe("packet tests", () => {
-  it("throws an error for invalid packet buffer", () => {
+  test("throws an error for invalid packet buffer", () => {
     const invalidBuffer = Buffer.from(
       "0b2a854d80003200000000000000000000000000000000000000000000000000003c7e",
       "hex",
     );
 
-    expect(() => {
-      Packet.fromBuffer(invalidBuffer);
-    }).to.throw("Unexpected magic identifier");
+    expect(() => Packet.fromBuffer(invalidBuffer)).toThrow(
+      "Unexpected magic identifier",
+    );
 
-    expect(() => {
-      new Packet(invalidBuffer);
-    }).to.throw("Unexpected magic identifier");
+    expect(() => new Packet(invalidBuffer)).toThrow(
+      "Unexpected magic identifier",
+    );
   });
 
-  it("can parse heartbeat packets correctly", () => {
+  test("can parse heartbeat packets correctly", () => {
     const expected = Buffer.from(
       "552c0436030a2b3f00000ec320203139303530205b442d4f53445d646973706c61795f6d6f646520360073e85528040d030a2c3f00000ea320203139303530205b442d52435d3120312028307c30297c30008128",
       "hex",
@@ -35,8 +33,7 @@ describe("packet tests", () => {
     packet.toShortString();
   });
 
-  it("should not nerf destinationRaw", () => {
-    // This is to prevent regression where we improperly parsed sourceType and destinationType
+  test("should not nerf destinationRaw", () => {
     const expected = Buffer.from("550e04662a2d123440003211e1ad", "hex");
     const packet = new Packet({
       sourceRaw: 0x2a,
@@ -47,10 +44,10 @@ describe("packet tests", () => {
       command: 0x32,
       commandPayload: Buffer.from("11", "hex"),
     });
-    expect(packet.toBuffer(), "should be identical").to.deep.equal(expected);
+    expect(packet.toBuffer()).toEqual(expected);
   });
 
-  it("should allow empty payload", () => {
+  test("should allow empty payload", () => {
     const packet = new Packet({
       sourceRaw: 0x2a,
       destinationRaw: 0x2d,
@@ -63,22 +60,22 @@ describe("packet tests", () => {
     packet.toLongString();
   });
 
-  it("can utilize specialty to string methods", () => {
+  test("can utilize specialty to string methods", () => {
     const expected = Buffer.from("550E04662A28DE2F40004F0154c8", "hex");
     const packet = Packet.fromBuffer(expected);
     packet.toShortString();
     packet.toLongString();
   });
 
-  it("can parse a packet from hex string", () => {
+  test("can parse a packet from hex string", () => {
     const packetHex = "550E04662A28DE2F40004F0154c8";
     const expected = Buffer.from(packetHex, "hex");
     const packet = Packet.fromHexString(packetHex);
 
-    expect(packet.toBuffer(), "should be identical").to.deep.equal(expected);
+    expect(packet.toBuffer()).toEqual(expected);
   });
 
-  it("can allow different constructor usages", () => {
+  test("can allow different constructor usages", () => {
     const expected = Buffer.from("550E04662A28DE2F40004F0154c8", "hex");
     let packet = new Packet({
       version: 0x1,
@@ -94,10 +91,7 @@ describe("packet tests", () => {
       crc: 0xc854,
     });
 
-    expect(
-      packet.toBuffer(),
-      "created with raw tags did not match",
-    ).to.deep.equal(expected);
+    expect(packet.toBuffer()).toEqual(expected);
 
     packet = new Packet(
       {
@@ -120,182 +114,105 @@ describe("packet tests", () => {
       false,
     );
 
-    expect(
-      packet.toBuffer(),
-      "created without raw tags did not match",
-    ).to.deep.equal(expected);
+    expect(packet.toBuffer()).toEqual(expected);
   });
 
-  it("checking a small known good packet", () => {
+  test("checking a small known good packet", () => {
     const expected = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
     const packet = Packet.fromBuffer(expected);
 
-    // 55 0E04 66 2A 28 DE2F 40 00 5B01 A53A
-    expect(packet.version, "version bad").to.equal(0x1);
-    expect(packet.length, "length bad").to.equal(0x0e);
-    expect(packet.crcHead, "crc bad").to.equal(0x66);
-    expect(packet.sourceRaw, "source raw bad").to.equal(0x2a);
-    expect(packet.sourceType, "source type bad").to.equal(DeviceType.PC);
-    expect(packet.sourceIndex, "source index bad").to.equal(0x1);
-    expect(packet.destinationRaw, "destination raw bad").to.equal(0x28);
-    expect(packet.destinationType, "destination type bad").to.equal(
-      DeviceType.LB_DM3XX_SKY,
-    );
-    expect(packet.destinationIndex, "destination index bad").to.equal(0x1);
-    expect(packet.sequenceID, "sequence id bad").to.equal(0xde2f);
-    expect(packet.commandTypeRaw, "command type raw bad").to.equal(0x40);
-    expect(packet.commandType, "command type bad").to.equal(
-      CommandType.REQUEST,
-    );
-    expect(packet.ackType, "ack type bad").to.equal(AckType.ACK);
-    expect(packet.encryptionType, "encryption type bad").to.equal(
-      EncryptionType.NONE,
-    );
-    expect(packet.commandSet, "command set bad").to.equal(0x00);
-    expect(packet.command, "command set bad").to.equal(0x5b);
-    expect(packet.commandPayload?.buffer, "command payload bad").to.deep.equal(
+    expect(packet.version).toBe(0x1);
+    expect(packet.length).toBe(0x0e);
+    expect(packet.crcHead).toBe(0x66);
+    expect(packet.sourceRaw).toBe(0x2a);
+    expect(packet.sourceType).toBe(DeviceType.PC);
+    expect(packet.sourceIndex).toBe(0x1);
+    expect(packet.destinationRaw).toBe(0x28);
+    expect(packet.destinationType).toBe(DeviceType.LB_DM3XX_SKY);
+    expect(packet.destinationIndex).toBe(0x1);
+    expect(packet.sequenceID).toBe(0xde2f);
+    expect(packet.commandTypeRaw).toBe(0x40);
+    expect(packet.commandType).toBe(CommandType.REQUEST);
+    expect(packet.ackType).toBe(AckType.ACK);
+    expect(packet.encryptionType).toBe(EncryptionType.NONE);
+    expect(packet.commandSet).toBe(0x00);
+    expect(packet.command).toBe(0x5b);
+    expect(packet.commandPayload?.buffer).toEqual(
       Buffer.from("01", "hex").buffer,
     );
-    expect(packet.crc, "crc bad").to.equal(0x3aa5);
+    expect(packet.crc).toBe(0x3aa5);
+    expect(packet.isValid()).toBe(true);
 
-    expect(packet.isValid(), "crc check bad").to.be.true;
+    expect(packet.toBuffer()).toEqual(expected);
+    expect(packet.toHexString()).toBe(expected.toString("hex"));
 
-    expect(packet.toBuffer()).to.deep.equal(expected);
-    expect(packet.toHexString()).to.equal(expected.toString("hex"));
+    expect(packet.changed).toBe(false);
 
-    expect(packet.changed, "changed tracker has not changed").to.equal(false);
-
-    // Change something small and make sure everything recaculates
     packet.sourceIndex = 2;
-    expect(packet.sourceRaw, "source raw did not changed").to.equal(0x4a);
-    expect(packet.sourceType, "source type changed").to.equal(DeviceType.PC);
-    expect(packet.sourceIndex, "source index did not change bad").to.equal(0x2);
-
-    expect(packet.version, "version bad").to.equal(0x1);
-    expect(packet.length, "length bad").to.equal(0x0e);
-    expect(packet.crcHead, "crc head changed").to.equal(0x66);
-    expect(packet.destinationRaw, "destination raw changed bad").to.equal(0x28);
-    expect(packet.destinationType, "destination type changed bad").to.equal(
-      DeviceType.LB_DM3XX_SKY,
-    );
-    expect(packet.destinationIndex, "destination index changed bad").to.equal(
-      0x1,
-    );
-    expect(packet.sequenceID, "sequence id changed bad").to.equal(0xde2f);
-    expect(packet.commandTypeRaw, "command type raw changed bad").to.equal(
-      0x40,
-    );
-    expect(packet.commandType, "command type changed bad").to.equal(
-      CommandType.REQUEST,
-    );
-    expect(packet.ackType, "ack type changed bad").to.equal(AckType.ACK);
-    expect(packet.encryptionType, "encryption type changed bad").to.equal(
-      EncryptionType.NONE,
-    );
-    expect(packet.commandSet, "command set changed bad").to.equal(0x00);
-    expect(packet.command, "command set changed bad").to.equal(0x5b);
-    expect(
-      packet.commandPayload?.buffer,
-      "command payload changed bad",
-    ).to.deep.equal(Buffer.from("01", "hex").buffer);
-    expect(packet.crc, "crc did not change").to.not.equal(0x3aa5);
-
-    expect(packet.changed, "changed tracker changed").to.equal(true);
-
-    expect(packet.isValid(), "crc change check bad").to.be.true;
+    expect(packet.sourceRaw).toBe(0x4a);
+    expect(packet.sourceType).toBe(DeviceType.PC);
+    expect(packet.sourceIndex).toBe(0x2);
 
     const changed = Buffer.from("550e04664a28de2f40005b01a4e9", "hex");
-    expect(packet.toBuffer(), "buffer was properly not changed").to.deep.equal(
-      changed,
-    );
+    expect(packet.toBuffer()).toEqual(changed);
   });
 
-  it("will not recalculate packets if disabled", () => {
+  test("will not recalculate packets if disabled", () => {
     const expected = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
     const packet = Packet.fromBuffer(expected, false);
 
     packet.sourceRaw = 0x2b;
 
-    expect(packet.sourceRaw, "source id did not change").to.equal(0x2b);
-    expect(packet.toBuffer(), "buffer changed").to.deep.equal(expected);
+    expect(packet.sourceRaw).toBe(0x2b);
+    expect(packet.toBuffer()).toEqual(expected);
   });
 
-  it("correctly recalculates the packet when a deep member has changes", () => {
+  test("correctly recalculates the packet when a deep member has changes", () => {
     const test = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
     const packet = Packet.fromBuffer(test);
 
     packet.commandPayload = undefined;
-    expect(
-      packet.commandPayload,
-      "payload did not change to empty set",
-    ).to.deep.equal(undefined);
-
-    let expectedChange = Buffer.from("550D04332A28DE2F40005B0BA3", "hex");
-    expect(
-      packet.toBuffer(),
-      "buffer did not change to no array",
-    ).to.deep.equal(expectedChange);
+    const expectedChange = Buffer.from("550D04332A28DE2F40005B0BA3", "hex");
+    expect(packet.toBuffer()).toEqual(expectedChange);
 
     packet.commandPayload = Buffer.from("010203", "hex");
-    expect(
-      packet.commandPayload.buffer,
-      "payload did not change",
-    ).to.deep.equal(Buffer.from("010203", "hex").buffer);
-
-    expectedChange = Buffer.from("551004562A28DE2F40005B0102032CB7", "hex");
-    expect(
-      packet.toBuffer(),
-      "buffer does not has full array change",
-    ).to.deep.equal(expectedChange);
+    const newChange = Buffer.from("551004562A28DE2F40005B0102032CB7", "hex");
+    expect(packet.toBuffer()).toEqual(newChange);
 
     packet.commandPayload[0] = 0x02;
-    expect(
-      packet.commandPayload.buffer,
-      "payload did not change",
-    ).to.deep.equal(Buffer.from("020203", "hex").buffer);
-
-    expectedChange = Buffer.from("551004562A28DE2F40005B0202034858", "hex");
-    expect(
-      packet.toBuffer(),
-      "buffer does not has full array change",
-    ).to.deep.equal(expectedChange);
+    const finalChange = Buffer.from("551004562A28DE2F40005B0202034858", "hex");
+    expect(packet.toBuffer()).toEqual(finalChange);
 
     expect(() => {
       packet.raw = test;
-    }).to.throw(
+    }).toThrow(
       "Cannot directly modify the raw buffer, either modify members or create new packet from a buffer",
     );
   });
 
-  it("correctly throws when packet is bad", () => {
-    const badConstructor = () => {
+  test("correctly throws when packet is bad", () => {
+    expect(() => {
       Packet.fromBuffer(Buffer.from("56D1FFBEEFD1FFBEEFD1FFBEEF", "hex"));
-    };
-    expect(badConstructor).to.throw("Unexpected magic identifier");
+    }).toThrow("Unexpected magic identifier");
 
-    const badLengthSmallConstructor = () => {
+    expect(() => {
       Packet.fromBuffer(Buffer.from("55D1FF", "hex"));
-    };
-    expect(badLengthSmallConstructor).to.throw(
+    }).toThrow(
       "Buffer length smaller than minimum size allowed for valid packet",
     );
 
-    const badBufferConstructor = () => {
+    expect(() => {
       Packet.fromBuffer(Buffer.alloc(0));
-    };
-    expect(badBufferConstructor).to.throw(
+    }).toThrow(
       "Buffer length smaller than minimum size allowed for valid packet",
     );
 
-    const badLengthLargeConstructor = () => {
+    expect(() => {
       Packet.fromBuffer(Buffer.from("55D1FFBEEFD1FFBEEFD1FFBEEF", "hex"));
-    };
-    expect(badLengthLargeConstructor).to.throw(
-      "Packet length larger than provided buffer",
-    );
+    }).toThrow("Packet length larger than provided buffer");
   });
 
-  it("generates a sequence ID if one is not given for a new packet", () => {
+  test("generates a sequence ID if one is not given for a new packet", () => {
     const unexpected = 0x00;
     const packet = new Packet({
       version: 0x1,
@@ -310,12 +227,10 @@ describe("packet tests", () => {
       crc: 0xc854,
     });
 
-    expect(packet.sequenceID, "expected a non-empty sequence id").to.not.equal(
-      unexpected,
-    );
+    expect(packet.sequenceID).not.toBe(unexpected);
   });
 
-  it("keeps a sequence ID if one is given for a new packet", () => {
+  test("keeps a sequence ID if one is given for a new packet", () => {
     let expected = 0x00;
     let packet = new Packet({
       version: 0x1,
@@ -331,9 +246,7 @@ describe("packet tests", () => {
       crc: 0xc854,
     });
 
-    expect(packet.sequenceID, 'expected a "zero" sequence id').to.equal(
-      expected,
-    );
+    expect(packet.sequenceID).toBe(expected);
 
     expected = 0x01;
     packet = new Packet({
@@ -350,8 +263,6 @@ describe("packet tests", () => {
       crc: 0xc854,
     });
 
-    expect(packet.sequenceID, "expected a specific sequence id").to.equal(
-      expected,
-    );
+    expect(packet.sequenceID).toBe(expected);
   });
 });

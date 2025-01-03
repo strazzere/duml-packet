@@ -1,4 +1,4 @@
-import prettyPrintCommand from "./pretty-print.js";
-import printCommand from "./print.js";
+import prettyPrintCommand from "./pretty-print";
+import printCommand from "./print";
 
 export const commands = [prettyPrintCommand, printCommand];

@@ -1,5 +1,5 @@
 import type { EventEmitter } from "node:events";
-import { crc8Wire, crc16KermitJam } from "./crc.js";
+import { crc8Wire, crc16KermitJam } from "./crc";
 
 import {
   AckType,
@@ -9,7 +9,7 @@ import {
   GeneralTypes,
   type PacketOptions,
   SetType,
-} from "./types.js";
+} from "./types";
 
 export interface DumlPacket {
   raw: Buffer;

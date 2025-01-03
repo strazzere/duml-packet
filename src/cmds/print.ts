@@ -1,5 +1,5 @@
 import type { Arguments, CommandModule } from "yargs";
-import { Packet } from "../packet.js";
+import { Packet } from "../packet";
 
 const printCommand: CommandModule = {
   command: "print <buffer>",
