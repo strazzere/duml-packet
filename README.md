@@ -29,5 +29,5 @@ Look at the [duml-beagle-parse](https://github.com/strazzere/duml-beagle-parse) 
 ```
 Licensed under ISC License
 
-Copyright 2022-2024 Tim 'diff' Strazzere <diff@protonmail.com>
+Copyright 2022-2025 Tim 'diff' Strazzere <diff@protonmail.com>
 ```
