@@ -25,6 +25,17 @@ const bundle = [
     plugins: [typescript()],
   },
   {
+    input: "./dist/cli.js",
+    output: [
+      {
+        file: "./dist/cli.bundle.js",
+        format: "esm",
+        sourcemap: true,
+      },
+    ],
+    plugins: [typescript()],
+  },
+  {
     input: "./dist/types.d.ts",
     output: {
       file: "./dist/index.d.ts",
