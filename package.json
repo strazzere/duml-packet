@@ -62,6 +62,6 @@
 		"typescript": "^5.6.3"
 	},
 	"optionalDependencies": {
-		"yargs": "^17.7.1"
+		"yargs": "^18.0.0"
 	}
 }
