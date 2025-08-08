@@ -244,4 +244,4 @@ export enum CenterBoardTypes {}
 
 export enum RadioTypes {}
 
-export { Packet, DumlPacket } from "./packet";
+export { DumlPacket, Packet } from "./packet";
