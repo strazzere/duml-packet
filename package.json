@@ -13,8 +13,9 @@
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsc -p . && rollup -c rollup.config.js",
-		"lint": "npx @biomejs/biome check --write ./src",
-		"format": "npx @biomejs/biome format --write .mocharc.json rollup.config.js package.json tsconfig.json ./src",
+		"lint": "biome check ./src",
+		"lint:fix": "biome check --write ./src",
+		"format": "biome format --write rollup.config.js package.json tsconfig.json ./src",
 		"cli": "node dist/cli.bundle.js",
 		"test": "jest --maxWorkers 8",
 		"test:coverage": "jest --collectCoverage --coverageDirectory=\"./coverage\" --reporters=default --reporters=jest-junit --maxWorkers 8",
