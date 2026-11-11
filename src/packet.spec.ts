@@ -158,13 +158,18 @@ describe("packet tests", () => {
   });
 
   test("will not recalculate packets if disabled", () => {
-    const expected = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
-    const packet = Packet.fromBuffer(expected, false);
+    const original = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
+    const packet = Packet.fromBuffer(original, false);
 
     packet.sourceRaw = 0x2b;
 
+    // The edit is in the packet, but the checksums are as they were so it is not valid. The fields and the bytes
+    // always agree, only the recalculation is turned off
     expect(packet.sourceRaw).toBe(0x2b);
-    expect(packet.toBuffer()).toEqual(expected);
+    expect(packet.toBuffer()).toEqual(
+      Buffer.from("550E04662B28DE2F40005B01A53A", "hex"),
+    );
+    expect(packet.isValid()).toBe(false);
   });
 
   test("correctly recalculates the packet when a deep member has changes", () => {

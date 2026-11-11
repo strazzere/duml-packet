@@ -52,6 +52,71 @@ const MAGIC = 0x55;
 const MIN_PACKET_LENGTH = 13;
 /** The length is stored in ten bits */
 const MAX_PACKET_LENGTH = 0x3ff;
+/** So this is the most a payload can be */
+const MAX_PAYLOAD_LENGTH = MAX_PACKET_LENGTH - MIN_PACKET_LENGTH;
+
+/**
+ * What each field can hold, which is what fits in the bytes (or bits) of the packet it is written to. Anything else
+ * would overflow into its neighbours, or make Node throw an error about writing out of range halfway through
+ * rebuilding the packet.
+ */
+const fieldRanges: Record<string, [min: number, max: number]> = {
+  version: [0, 0x3f],
+  length: [MIN_PACKET_LENGTH, MAX_PACKET_LENGTH],
+  crcHead: [0, 0xff],
+  sourceRaw: [0, 0xff],
+  sourceType: [0, 0x1f],
+  sourceIndex: [0, 0x7],
+  destinationRaw: [0, 0xff],
+  destinationType: [0, 0x1f],
+  destinationIndex: [0, 0x7],
+  sequenceID: [0, 0xffff],
+  commandTypeRaw: [0, 0xff],
+  commandType: [0, 0x1],
+  ackType: [0, 0x3],
+  encryptionType: [0, 0xf],
+  commandSet: [0, 0xff],
+  command: [0, 0xff],
+  crc: [0, 0xffff],
+};
+
+/**
+ * @throws {RangeError} if the value does not fit in the field
+ * @throws {TypeError} if the payload is not a Buffer
+ */
+const validateField = (name: string, value: unknown) => {
+  if (name === "commandPayload") {
+    if (value != null && !(value instanceof Buffer)) {
+      throw new TypeError("commandPayload must be a Buffer or undefined");
+    }
+    return;
+  }
+
+  const range = fieldRanges[name];
+  if (
+    range &&
+    (typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < range[0] ||
+      value > range[1])
+  ) {
+    throw new RangeError(
+      `${name} must be an integer between ${range[0]} and ${range[1]}, got ${String(value)}`,
+    );
+  }
+};
+
+/**
+ * The length of a packet is the length of its payload plus the rest of the packet, and has to fit in the ten bits it is
+ * stored in, as anything more would spill into the version.
+ */
+const validatePayloadSize = (payload: Buffer | undefined | null) => {
+  if (payload && payload.length > MAX_PAYLOAD_LENGTH) {
+    throw new RangeError(
+      `commandPayload is ${payload.length} bytes, but a packet can hold at most ${MAX_PAYLOAD_LENGTH}`,
+    );
+  }
+};
 
 const messages: Record<DumlParseErrorCode, string> = {
   INVALID_HEX:
@@ -120,6 +185,20 @@ export class Packet implements DumlPacket {
     // If any raw types have been passed, then they will take presidence
     // over other parameters passed in
     if (!packet.raw) {
+      // Check everything before using any of it
+      for (const field of Object.keys(fieldRanges)) {
+        const value = packet[field as keyof PacketOptions];
+        if (value !== undefined) {
+          validateField(field, value);
+        }
+      }
+      validateField("commandPayload", packet.commandPayload);
+      // With autoCalculate the length always comes from the payload. Without it a length that was given is used as
+      // is (a payload that doesn't fit is cut off), but one that is not given still comes from the payload
+      if (autoCalculate || packet.length === undefined) {
+        validatePayloadSize(packet.commandPayload);
+      }
+
       this.version = packet.version ?? 0x1;
 
       // We need to calculate this for the length
@@ -181,13 +260,8 @@ export class Packet implements DumlPacket {
       // Generate raw at this point, which will change the crcs given above, if at all
       this.calculatePacket(autoCalculate);
 
-      if (autoCalculate) {
-        // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-        return this.createPacketProxy(this);
-      }
-
       // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-      return this;
+      return this.createPacketProxy(this, autoCalculate);
     }
 
     if (!packet.raw || packet.raw.length < MIN_PACKET_LENGTH) {
@@ -234,13 +308,8 @@ export class Packet implements DumlPacket {
 
     this.changed = false;
 
-    if (autoCalculate) {
-      // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-      return this.createPacketProxy(this);
-    }
-
     // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-    return this;
+    return this.createPacketProxy(this, autoCalculate);
   }
 
   private static readonly packetFields = new Set([
@@ -264,7 +333,12 @@ export class Packet implements DumlPacket {
     "crc",
   ]);
 
-  private createPacketProxy(packet: Packet): Packet {
+  /**
+   * Wraps the packet so that editing it rebuilds the bytes. With `autoCalculate` that also fixes the length and
+   * checksums, without it the length and checksums are written as they are set (or were), which is how a packet that
+   * is wrong on purpose is made.
+   */
+  private createPacketProxy(packet: Packet, autoCalculate: boolean): Packet {
     const handler = {
       get: (
         target: Packet,
@@ -303,13 +377,39 @@ export class Packet implements DumlPacket {
           );
         }
 
+        // Check before changing anything, so a value that is rejected leaves the packet as it was
+        if (target === packet) {
+          validateField(propertyName as string, value);
+          if (propertyName === "commandPayload" && autoCalculate) {
+            validatePayloadSize(value as Buffer | undefined);
+          }
+        }
+
         const ret = Reflect.set(target, propertyName, value);
+
+        // The raw fields are made of the fields below them, and are worked out from those when the packet is rebuilt,
+        // so setting one has to set what it is made of, or the change would be lost
+        if (target === packet) {
+          const raw = value as number;
+          if (propertyName === "sourceRaw") {
+            packet.sourceType = raw & 0x1f;
+            packet.sourceIndex = (raw & 0xe0) >> 0x5;
+          } else if (propertyName === "destinationRaw") {
+            packet.destinationType = raw & 0x1f;
+            packet.destinationIndex = (raw & 0xe0) >> 0x5;
+          } else if (propertyName === "commandTypeRaw") {
+            packet.commandType = raw >> 7;
+            packet.ackType = (raw >> 5) & 0x03;
+            packet.encryptionType = raw & 0x0f;
+          }
+        }
+
         if (
           target !== packet ||
           Packet.packetFields.has(propertyName as string)
         ) {
           packet.changed = true;
-          packet.calculatePacket();
+          packet.calculatePacket(autoCalculate);
         }
 
         return ret;
@@ -336,7 +436,8 @@ export class Packet implements DumlPacket {
    */
   private calculatePacket(generate = true) {
     if (generate) {
-      this.length = 13 + ~~this.commandPayload?.length;
+      validatePayloadSize(this.commandPayload);
+      this.length = MIN_PACKET_LENGTH + ~~this.commandPayload?.length;
     }
     const buffer = Buffer.alloc(this.length);
 
