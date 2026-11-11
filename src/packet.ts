@@ -459,10 +459,10 @@ export class Packet implements DumlPacket {
 }
 
 export {
-  GeneralTypes,
-  DeviceType,
-  CommandType,
   AckType,
+  CommandType,
+  DeviceType,
   EncryptionType,
+  GeneralTypes,
   SetType,
 };

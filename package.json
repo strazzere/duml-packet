@@ -3,20 +3,28 @@
 	"version": "2.0.4",
 	"description": "For use when parsing and modifying DUML packets for DJI drones",
 	"exports": {
-		"import": "./dist/bundle.js",
-		"require": "./dist/bundle.cjs"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/bundle.js",
+			"require": "./dist/bundle.cjs"
+		},
+		"./package.json": "./package.json"
 	},
+	"main": "./dist/bundle.cjs",
+	"module": "./dist/bundle.js",
 	"bin": {
-		"dumlpacket": "dist/cli.js"
+		"dumlpacket": "dist/cli.bundle.js"
 	},
 	"type": "module",
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsc -p . && rollup -c rollup.config.js",
-		"lint": "npx @biomejs/biome check --write ./src",
-		"format": "npx @biomejs/biome format --write .mocharc.json rollup.config.js package.json tsconfig.json ./src",
+		"lint": "biome check ./src",
+		"lint:fix": "biome check --write ./src",
+		"format": "biome format --write rollup.config.js package.json tsconfig.json ./src",
 		"cli": "node dist/cli.bundle.js",
 		"test": "jest --maxWorkers 8",
+		"test:package": "node scripts/pack-smoke-test.mjs",
 		"test:coverage": "jest --collectCoverage --coverageDirectory=\"./coverage\" --reporters=default --reporters=jest-junit --maxWorkers 8",
 		"test:coverage:html": "jest --collectCoverage --coverageDirectory=\"./coverage\" --reporters=html --reporters=text --reporters=jest-junit --maxWorkers 8",
 		"prepublishOnly": "npm run build",
@@ -27,7 +35,9 @@
 		"./dist/bundle.js",
 		"./dist/bundle.js.map",
 		"./dist/bundle.cjs",
-		"./dist/bundle.cjs.map"
+		"./dist/bundle.cjs.map",
+		"./dist/cli.bundle.js",
+		"./dist/cli.bundle.js.map"
 	],
 	"repository": {
 		"type": "git",
@@ -45,23 +55,20 @@
 	},
 	"homepage": "https://github.com/strazzere/duml-packet#readme",
 	"devDependencies": {
-		"@biomejs/biome": "^2.1.4",
-		"@rollup/plugin-typescript": "^12.1.0",
-		"@types/chai": "^5.0.0",
+		"@biomejs/biome": "^2.6.7",
+		"@rollup/plugin-typescript": "^12.3.1",
 		"@types/jest": "^30.0.0",
-		"@types/mocha": "^10.0.9",
+		"@types/node": "^22.20.5",
 		"@types/yargs": "^17.0.24",
-		"jest": "^30.0.5",
-		"jest-junit": "^16.0.0",
-		"rollup": "^4.9.6",
-		"rollup-plugin-dts": "^6.1.0",
-		"source-map-support": "^0.5.21",
-		"ts-jest": "^29.2.5",
-		"ts-node": "^10.9.1",
-		"tslib": "^2.7.0",
-		"typescript": "^5.6.3"
+		"jest": "^30.5.2",
+		"jest-junit": "^17.0.0",
+		"rollup": "^4.68.2",
+		"rollup-plugin-dts": "^6.5.1",
+		"ts-jest": "^29.4.15",
+		"tslib": "^2.9.1",
+		"typescript": "^6.0.3"
 	},
 	"optionalDependencies": {
-		"yargs": "^18.0.0"
+		"yargs": "^18.2.0"
 	}
 }

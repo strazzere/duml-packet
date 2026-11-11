@@ -25,12 +25,16 @@ const bundle = [
     plugins: [typescript()],
   },
   {
+    // The command line tool, which is what the "dumlpacket" bin runs. yargs is an optional dependency, so it is
+    // left to be resolved when the tool runs rather than bundled
     input: "./dist/cli.js",
+    external: [/^yargs/],
     output: [
       {
         file: "./dist/cli.bundle.js",
         format: "esm",
         sourcemap: true,
+        banner: "#!/usr/bin/env node",
       },
     ],
     plugins: [typescript()],
