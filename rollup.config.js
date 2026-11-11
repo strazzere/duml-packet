@@ -40,7 +40,8 @@ const bundle = [
     plugins: [typescript()],
   },
   {
-    input: "./dist/types.d.ts",
+    // Built from the same entry as the bundles above, so the types are exactly what the runtime exports
+    input: "./dist/packet.d.ts",
     output: {
       file: "./dist/index.d.ts",
       format: "es",

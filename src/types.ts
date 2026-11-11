@@ -10,7 +10,7 @@ export interface PacketOptions {
   sourceIndex?: number;
 
   destinationRaw?: number;
-  destinationType?: number;
+  destinationType?: DeviceType;
   destinationIndex?: number;
 
   sequenceID?: number;

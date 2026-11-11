@@ -3,7 +3,7 @@
 //
 // Run it after a build: npm run test:package
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -31,28 +31,36 @@ try {
   assert.match(cli, /Valid CRC:\s+true/, `unexpected CLI output:\n${cli}`);
   console.log("ok - dumlpacket pretty-print");
 
+  // Input that is not a packet is one line on stderr and a failing exit status, not a stack trace
+  const bad = spawnSync(join(project, "node_modules", ".bin", "dumlpacket"), ["print", "zz"], { encoding: "utf8" });
+  assert.equal(bad.status, 1, `expected exit status 1, got ${bad.status}`);
+  assert.equal(bad.stdout, "");
+  assert.match(bad.stderr, /^Error: Invalid hex string/);
+  assert.equal(bad.stderr.trim().split("\n").length, 1, `expected one line, got:\n${bad.stderr}`);
+  console.log("ok - dumlpacket on bad input");
+
   // As an ES module
   const esm = run(
     process.execPath,
-    ["--input-type=module", "-e", `import { Packet } from "duml-packet"; console.log(Packet.fromHexString("${hex}").isValid());`],
+    ["--input-type=module", "-e", `import { Packet, DumlParseError } from "duml-packet"; try { Packet.fromHexString("zz"); } catch (error) { console.log(error instanceof DumlParseError && error.code === "INVALID_HEX"); } console.log(Packet.parseAll("${hex}${hex}").packets.length === 2, Packet.fromHexString("${hex}").isValid());`],
     { cwd: project },
   );
-  assert.equal(esm.trim(), "true");
+  assert.equal(esm.trim(), "true\ntrue true");
   console.log("ok - import");
 
   // As CommonJS
   const cjs = run(
     process.execPath,
-    ["-e", `const { Packet } = require("duml-packet"); console.log(Packet.fromHexString("${hex}").isValid());`],
+    ["-e", `const { Packet, DumlParseError } = require("duml-packet"); try { Packet.fromHexString("zz"); } catch (error) { console.log(error instanceof DumlParseError && error.code === "INVALID_HEX"); } console.log(Packet.fromHexString("${hex}").isValid());`],
     { cwd: project },
   );
-  assert.equal(cjs.trim(), "true");
+  assert.equal(cjs.trim(), "true\ntrue");
   console.log("ok - require");
 
   // The types, resolved the way a modern TypeScript project would
   writeFileSync(
     join(project, "index.ts"),
-    `import { Packet, CommandType } from "duml-packet";\nconst packet: Packet = Packet.fromHexString("${hex}");\nconst type: CommandType = packet.commandType;\nexport { type };\n`,
+    `import { DumlParseError, Packet, CommandType, type DumlParseErrorCode } from "duml-packet";\nconst packet: Packet = Packet.fromHexString("${hex}");\nconst type: CommandType = packet.commandType;\nconst rest: typeof packet.remainder = packet.remainder;\nconst { packets, remainder } = Packet.parseAll(packet.toBuffer());\nconst code: DumlParseErrorCode = new DumlParseError("BAD_MAGIC", "x").code;\nexport { type, rest, packets, remainder, code };\n`,
   );
   writeFileSync(
     join(project, "tsconfig.json"),

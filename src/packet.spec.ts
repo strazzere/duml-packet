@@ -158,13 +158,18 @@ describe("packet tests", () => {
   });
 
   test("will not recalculate packets if disabled", () => {
-    const expected = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
-    const packet = Packet.fromBuffer(expected, false);
+    const original = Buffer.from("550E04662A28DE2F40005B01A53A", "hex");
+    const packet = Packet.fromBuffer(original, false);
 
     packet.sourceRaw = 0x2b;
 
+    // The edit is in the packet, but the checksums are as they were so it is not valid. The fields and the bytes
+    // always agree, only the recalculation is turned off
     expect(packet.sourceRaw).toBe(0x2b);
-    expect(packet.toBuffer()).toEqual(expected);
+    expect(packet.toBuffer()).toEqual(
+      Buffer.from("550E04662B28DE2F40005B01A53A", "hex"),
+    );
+    expect(packet.isValid()).toBe(false);
   });
 
   test("correctly recalculates the packet when a deep member has changes", () => {
@@ -264,5 +269,71 @@ describe("packet tests", () => {
     });
 
     expect(packet.sequenceID).toBe(expected);
+  });
+
+  test("correctly masks ackType when commandType is ACK", () => {
+    // commandTypeRaw 0xC0 = commandType=1 (ACK), ackType=2 (ACK), encryption=0 (NONE)
+    const packet = new Packet({
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      sequenceID: 0x1234,
+      commandTypeRaw: 0xc0,
+      commandSet: 0x00,
+      command: 0x01,
+    });
+
+    expect(packet.commandType).toBe(CommandType.ACK);
+    expect(packet.ackType).toBe(AckType.ACK);
+    expect(packet.encryptionType).toBe(EncryptionType.NONE);
+
+    // Also verify when parsing from a buffer
+    const reparsed = Packet.fromBuffer(packet.toBuffer());
+    expect(reparsed.commandType).toBe(CommandType.ACK);
+    expect(reparsed.ackType).toBe(AckType.ACK);
+    expect(reparsed.encryptionType).toBe(EncryptionType.NONE);
+  });
+
+  test("correctly masks ackType for all commandTypeRaw combinations", () => {
+    // commandTypeRaw 0xA3 = commandType=1, ackType=1 (PUSH), encryption=3 (XOR)
+    const packet = new Packet({
+      sourceRaw: 0x2a,
+      destinationRaw: 0x28,
+      sequenceID: 0x1234,
+      commandTypeRaw: 0xa3,
+      commandSet: 0x00,
+      command: 0x01,
+    });
+
+    expect(packet.commandType).toBe(CommandType.ACK);
+    expect(packet.ackType).toBe(AckType.PUSH);
+    expect(packet.encryptionType).toBe(EncryptionType.XOR);
+  });
+
+  test("preserves falsy zero values in constructor options", () => {
+    const packet = new Packet(
+      {
+        version: 0x0,
+        sourceRaw: 0x00,
+        destinationRaw: 0x00,
+        sequenceID: 0x0000,
+        commandTypeRaw: 0x00,
+        commandSet: 0x00,
+        command: 0x00,
+        crc: 0x0000,
+      },
+      false,
+    );
+
+    expect(packet.version).toBe(0);
+    expect(packet.sourceRaw).toBe(0);
+    expect(packet.destinationRaw).toBe(0);
+    expect(packet.sequenceID).toBe(0);
+    expect(packet.commandTypeRaw).toBe(0);
+    expect(packet.commandType).toBe(CommandType.REQUEST);
+    expect(packet.ackType).toBe(AckType.NO_ACK);
+    expect(packet.encryptionType).toBe(EncryptionType.NONE);
+    expect(packet.commandSet).toBe(SetType.GENERAL);
+    expect(packet.command).toBe(0);
+    expect(packet.crc).toBe(0);
   });
 });

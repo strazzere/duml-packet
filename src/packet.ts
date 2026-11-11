@@ -1,5 +1,5 @@
-import type { EventEmitter } from "node:events";
 import { crc8Wire, crc16KermitJam } from "./crc";
+import { DumlParseError, type DumlParseErrorCode } from "./errors";
 
 import {
   AckType,
@@ -23,39 +23,7 @@ export interface DumlPacket {
   sourceIndex: number;
 
   destinationRaw: number;
-  destinationType: number;
-  destinationIndex: number;
-
-  sequenceID: number;
-
-  commandTypeRaw: number;
-  commandType: CommandType;
-  ackType: AckType;
-  encryptionType: EncryptionType;
-
-  commandSet: number;
-  command: number;
-  commandPayload: Buffer;
-
-  crc: number;
-
-  isValid(): boolean;
-  toBuffer(): Buffer;
-}
-
-export class Packet implements DumlPacket {
-  raw: Buffer;
-
-  version: number;
-  length: number;
-  crcHead: number;
-
-  sourceRaw: number;
-  sourceType: DeviceType;
-  sourceIndex: number;
-
-  destinationRaw: number;
-  destinationType: number;
+  destinationType: DeviceType;
   destinationIndex: number;
 
   sequenceID: number;
@@ -71,8 +39,130 @@ export class Packet implements DumlPacket {
 
   crc: number;
 
+  /** The bytes that came after this packet in the buffer it was parsed from, empty if there were none. */
+  remainder: Buffer;
+
+  isValid(): boolean;
+  toBuffer(): Buffer;
+}
+
+/** Every packet starts with this byte */
+const MAGIC = 0x55;
+/** The fields of a packet (the header, command, crc, but no payload) are this many bytes */
+const MIN_PACKET_LENGTH = 13;
+/** The length is stored in ten bits */
+const MAX_PACKET_LENGTH = 0x3ff;
+/** So this is the most a payload can be */
+const MAX_PAYLOAD_LENGTH = MAX_PACKET_LENGTH - MIN_PACKET_LENGTH;
+
+/**
+ * What each field can hold, which is what fits in the bytes (or bits) of the packet it is written to. Anything else
+ * would overflow into its neighbours, or make Node throw an error about writing out of range halfway through
+ * rebuilding the packet.
+ */
+const fieldRanges: Record<string, [min: number, max: number]> = {
+  version: [0, 0x3f],
+  length: [MIN_PACKET_LENGTH, MAX_PACKET_LENGTH],
+  crcHead: [0, 0xff],
+  sourceRaw: [0, 0xff],
+  sourceType: [0, 0x1f],
+  sourceIndex: [0, 0x7],
+  destinationRaw: [0, 0xff],
+  destinationType: [0, 0x1f],
+  destinationIndex: [0, 0x7],
+  sequenceID: [0, 0xffff],
+  commandTypeRaw: [0, 0xff],
+  commandType: [0, 0x1],
+  ackType: [0, 0x3],
+  encryptionType: [0, 0xf],
+  commandSet: [0, 0xff],
+  command: [0, 0xff],
+  crc: [0, 0xffff],
+};
+
+/**
+ * @throws {RangeError} if the value does not fit in the field
+ * @throws {TypeError} if the payload is not a Buffer
+ */
+const validateField = (name: string, value: unknown) => {
+  if (name === "commandPayload") {
+    if (value != null && !(value instanceof Buffer)) {
+      throw new TypeError("commandPayload must be a Buffer or undefined");
+    }
+    return;
+  }
+
+  const range = fieldRanges[name];
+  if (
+    range &&
+    (typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < range[0] ||
+      value > range[1])
+  ) {
+    throw new RangeError(
+      `${name} must be an integer between ${range[0]} and ${range[1]}, got ${String(value)}`,
+    );
+  }
+};
+
+/**
+ * The length of a packet is the length of its payload plus the rest of the packet, and has to fit in the ten bits it is
+ * stored in, as anything more would spill into the version.
+ */
+const validatePayloadSize = (payload: Buffer | undefined | null) => {
+  if (payload && payload.length > MAX_PAYLOAD_LENGTH) {
+    throw new RangeError(
+      `commandPayload is ${payload.length} bytes, but a packet can hold at most ${MAX_PAYLOAD_LENGTH}`,
+    );
+  }
+};
+
+const messages: Record<DumlParseErrorCode, string> = {
+  INVALID_HEX: "Invalid hex string, expected only hexadecimal characters",
+  BUFFER_TOO_SMALL:
+    "Buffer length smaller than minimum size allowed for valid packet",
+  BAD_MAGIC: "Unexpected magic identifier",
+  LENGTH_TOO_SMALL:
+    "Packet length smaller than minimum size allowed for valid packet",
+  LENGTH_EXCEEDS_BUFFER: "Packet length larger than provided buffer",
+};
+
+const parseError = (code: DumlParseErrorCode): DumlParseError =>
+  new DumlParseError(code, messages[code]);
+
+export class Packet implements DumlPacket {
+  raw: Buffer;
+
+  version: number;
+  length: number;
+  crcHead: number;
+
+  sourceRaw: number;
+  sourceType: DeviceType;
+  sourceIndex: number;
+
+  destinationRaw: number;
+  destinationType: DeviceType;
+  destinationIndex: number;
+
+  sequenceID: number;
+
+  commandTypeRaw: number;
+  commandType: CommandType;
+  ackType: AckType;
+  encryptionType: EncryptionType;
+
+  commandSet: number;
+  command: number;
+  commandPayload: Buffer | undefined;
+
+  crc: number;
+
+  /** The bytes that came after this packet in the buffer it was parsed from, empty if there were none. */
+  remainder: Buffer = Buffer.alloc(0);
+
   changed: boolean;
-  emitter: EventEmitter;
 
   /**
    *
@@ -94,46 +184,46 @@ export class Packet implements DumlPacket {
     // If any raw types have been passed, then they will take presidence
     // over other parameters passed in
     if (!packet.raw) {
-      this.version = packet.version ? packet.version : 0x1;
+      // Check everything before using any of it
+      for (const field of Object.keys(fieldRanges)) {
+        const value = packet[field as keyof PacketOptions];
+        if (value !== undefined) {
+          validateField(field, value);
+        }
+      }
+      validateField("commandPayload", packet.commandPayload);
+      // With autoCalculate the length always comes from the payload. Without it a length that was given is used as
+      // is (a payload that doesn't fit is cut off), but one that is not given still comes from the payload
+      if (autoCalculate || packet.length === undefined) {
+        validatePayloadSize(packet.commandPayload);
+      }
+
+      this.version = packet.version ?? 0x1;
 
       // We need to calculate this for the length
-      this.commandPayload = packet.commandPayload
-        ? packet.commandPayload
-        : undefined;
+      this.commandPayload = packet.commandPayload;
 
-      this.length = packet.length
-        ? packet.length
-        : 13 + ~~this.commandPayload?.length;
+      this.length = packet.length ?? 13 + ~~this.commandPayload?.length;
 
-      this.crcHead = packet.crcHead ? packet.crcHead : 0x00;
+      this.crcHead = packet.crcHead ?? 0x00;
 
-      this.sourceRaw = packet.sourceRaw ? packet.sourceRaw : 0x00;
-      if (packet.sourceRaw) {
+      this.sourceRaw = packet.sourceRaw ?? 0x00;
+      if (packet.sourceRaw != null) {
         this.sourceType = this.sourceRaw & 0x1f;
         this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
       } else {
-        this.sourceType = packet.sourceType
-          ? packet.sourceType
-          : DeviceType.ANY;
-        this.sourceIndex = packet.sourceIndex
-          ? packet.sourceIndex
-          : DeviceType.ANY;
+        this.sourceType = packet.sourceType ?? DeviceType.ANY;
+        this.sourceIndex = packet.sourceIndex ?? 0;
         this.sourceRaw = this.sourceType | (this.sourceIndex << 0x5);
       }
 
-      this.destinationRaw = packet.destinationRaw
-        ? packet.destinationRaw
-        : 0x00;
-      if (packet.destinationRaw) {
+      this.destinationRaw = packet.destinationRaw ?? 0x00;
+      if (packet.destinationRaw != null) {
         this.destinationType = this.destinationRaw & 0x1f;
         this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
       } else {
-        this.destinationType = packet.destinationType
-          ? packet.destinationType
-          : DeviceType.ANY;
-        this.destinationIndex = packet.destinationIndex
-          ? packet.destinationIndex
-          : DeviceType.ANY;
+        this.destinationType = packet.destinationType ?? DeviceType.ANY;
+        this.destinationIndex = packet.destinationIndex ?? 0;
         this.destinationRaw =
           this.destinationType | (this.destinationIndex << 0x5);
       }
@@ -144,65 +234,59 @@ export class Packet implements DumlPacket {
         this.randomSequenceID();
       }
 
-      this.commandTypeRaw = packet.commandTypeRaw
-        ? packet.commandTypeRaw
-        : 0x00;
-      if (packet.commandTypeRaw) {
+      this.commandTypeRaw = packet.commandTypeRaw ?? 0x00;
+      if (packet.commandTypeRaw != null) {
         this.commandType = this.commandTypeRaw >> 7;
-        this.ackType = this.commandTypeRaw >> 5;
+        this.ackType = (this.commandTypeRaw >> 5) & 0x03;
         this.encryptionType = this.commandTypeRaw & 0x0f;
       } else {
-        this.commandType = packet.commandType
-          ? packet.commandType
-          : CommandType.REQUEST;
-        this.ackType = packet.ackType ? packet.ackType : AckType.NO_ACK;
-        this.encryptionType = packet.encryptionType
-          ? packet.encryptionType
-          : EncryptionType.NONE;
+        this.commandType = packet.commandType ?? CommandType.REQUEST;
+        this.ackType = packet.ackType ?? AckType.NO_ACK;
+        this.encryptionType = packet.encryptionType ?? EncryptionType.NONE;
         this.commandTypeRaw =
           (this.commandType << 7) | (this.ackType << 5) | this.encryptionType;
       }
 
-      this.commandSet = packet.commandSet ? packet.commandSet : SetType.GENERAL;
+      this.commandSet = packet.commandSet ?? SetType.GENERAL;
 
       // Command payload done first for length
-      this.command = packet.command ? packet.command : 0x00;
+      this.command = packet.command ?? 0x00;
 
-      this.crc = packet.crc ? packet.crc : 0x0000;
+      this.crc = packet.crc ?? 0x0000;
 
       this.changed = false;
 
       // Generate raw at this point, which will change the crcs given above, if at all
       this.calculatePacket(autoCalculate);
 
-      if (autoCalculate) {
-        // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-        return this.createPacketProxy(this);
-      }
-
       // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-      return this;
+      return this.createPacketProxy(this, autoCalculate);
     }
 
-    if (!packet.raw || packet.raw.length < 13) {
-      throw new Error(
-        "Buffer length smaller than minimum size allowed for valid packet",
-      );
+    if (!packet.raw || packet.raw.length < MIN_PACKET_LENGTH) {
+      throw parseError("BUFFER_TOO_SMALL");
     }
 
-    if (packet.raw[0] !== 0x55) {
-      throw new Error("Unexpected magic identifier");
+    if (packet.raw[0] !== MAGIC) {
+      throw parseError("BAD_MAGIC");
     }
 
     this.version = (packet.raw.readUInt16LE(1) & 0xfc00) >> 0xa;
     this.length = packet.raw.readUInt16LE(1) & 0x03ff;
     this.crcHead = packet.raw.readUInt8(3);
 
-    if (this.length > packet.raw.length) {
-      throw new Error("Packet length larger than provided buffer");
+    if (this.length < MIN_PACKET_LENGTH) {
+      throw parseError("LENGTH_TOO_SMALL");
     }
 
-    this.raw = packet.raw;
+    if (this.length > packet.raw.length) {
+      throw parseError("LENGTH_EXCEEDS_BUFFER");
+    }
+
+    // The packet is what its length says, anything after it belongs to whatever comes next. This is copied, so the
+    // packet doesn't share memory with the buffer it came from (editing the payload would change the caller's data)
+    this.raw = Buffer.from(packet.raw.subarray(0, this.length));
+    this.remainder = Buffer.from(packet.raw.subarray(this.length));
     this.sourceRaw = this.raw.readUInt8(4);
     this.sourceType = this.sourceRaw & 0x1f;
     this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
@@ -214,7 +298,7 @@ export class Packet implements DumlPacket {
     this.sequenceID = this.raw.readUInt16BE(6);
     this.commandTypeRaw = this.raw.readUInt8(8);
     this.commandType = this.commandTypeRaw >> 7;
-    this.ackType = this.commandTypeRaw >> 5;
+    this.ackType = (this.commandTypeRaw >> 5) & 0x03;
     this.encryptionType = this.commandTypeRaw & 0x0f;
     this.commandSet = this.raw.readUInt8(9);
     this.command = this.raw.readUint8(10);
@@ -223,16 +307,37 @@ export class Packet implements DumlPacket {
 
     this.changed = false;
 
-    if (autoCalculate) {
-      // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-      return this.createPacketProxy(this);
-    }
-
     // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
-    return this;
+    return this.createPacketProxy(this, autoCalculate);
   }
 
-  private createPacketProxy(packet: Packet): Packet {
+  private static readonly packetFields = new Set([
+    "version",
+    "length",
+    "crcHead",
+    "sourceRaw",
+    "sourceType",
+    "sourceIndex",
+    "destinationRaw",
+    "destinationType",
+    "destinationIndex",
+    "sequenceID",
+    "commandTypeRaw",
+    "commandType",
+    "ackType",
+    "encryptionType",
+    "commandSet",
+    "command",
+    "commandPayload",
+    "crc",
+  ]);
+
+  /**
+   * Wraps the packet so that editing it rebuilds the bytes. With `autoCalculate` that also fixes the length and
+   * checksums, without it the length and checksums are written as they are set (or were), which is how a packet that
+   * is wrong on purpose is made.
+   */
+  private createPacketProxy(packet: Packet, autoCalculate: boolean): Packet {
     const handler = {
       get: (
         target: Packet,
@@ -264,11 +369,6 @@ export class Packet implements DumlPacket {
       },
 
       set: (target: Packet, propertyName: keyof Packet, value: unknown) => {
-        // Never let a command payload be set to undefined
-        // if (['commandPayload'].includes(propertyName) && value === undefined) {
-        //   value = Buffer.alloc(0);
-        // }
-
         // If someone wants to change raw, just create a new object for them
         if (["raw"].includes(propertyName)) {
           throw new Error(
@@ -276,10 +376,39 @@ export class Packet implements DumlPacket {
           );
         }
 
+        // Check before changing anything, so a value that is rejected leaves the packet as it was
+        if (target === packet) {
+          validateField(propertyName as string, value);
+          if (propertyName === "commandPayload" && autoCalculate) {
+            validatePayloadSize(value as Buffer | undefined);
+          }
+        }
+
         const ret = Reflect.set(target, propertyName, value);
-        if (Packet.prototype[propertyName] !== null) {
+
+        // The raw fields are made of the fields below them, and are worked out from those when the packet is rebuilt,
+        // so setting one has to set what it is made of, or the change would be lost
+        if (target === packet) {
+          const raw = value as number;
+          if (propertyName === "sourceRaw") {
+            packet.sourceType = raw & 0x1f;
+            packet.sourceIndex = (raw & 0xe0) >> 0x5;
+          } else if (propertyName === "destinationRaw") {
+            packet.destinationType = raw & 0x1f;
+            packet.destinationIndex = (raw & 0xe0) >> 0x5;
+          } else if (propertyName === "commandTypeRaw") {
+            packet.commandType = raw >> 7;
+            packet.ackType = (raw >> 5) & 0x03;
+            packet.encryptionType = raw & 0x0f;
+          }
+        }
+
+        if (
+          target !== packet ||
+          Packet.packetFields.has(propertyName as string)
+        ) {
           packet.changed = true;
-          packet.calculatePacket();
+          packet.calculatePacket(autoCalculate);
         }
 
         return ret;
@@ -306,7 +435,8 @@ export class Packet implements DumlPacket {
    */
   private calculatePacket(generate = true) {
     if (generate) {
-      this.length = 13 + ~~this.commandPayload?.length;
+      validatePayloadSize(this.commandPayload);
+      this.length = MIN_PACKET_LENGTH + ~~this.commandPayload?.length;
     }
     const buffer = Buffer.alloc(this.length);
 
@@ -339,9 +469,7 @@ export class Packet implements DumlPacket {
     buffer.writeUint8(this.command, 10);
 
     if (this.commandPayload?.length > 0) {
-      for (let i = 0; i < this.commandPayload.length; i++) {
-        buffer.writeUInt8(this.commandPayload.at(i), 11 + i);
-      }
+      this.commandPayload.copy(buffer, 11);
     }
 
     if (generate) {
@@ -454,14 +582,86 @@ export class Packet implements DumlPacket {
    * @returns {Packet}
    */
   public static fromHexString(hexString: string, autoCalculate = true): Packet {
-    return new Packet({ raw: Buffer.from(hexString, "hex") }, autoCalculate);
+    return new Packet({ raw: Packet.hexToBuffer(hexString) }, autoCalculate);
+  }
+
+  /**
+   * Split a buffer (or hex string) of packets that are back to back, like a capture or a stream, into packets.
+   *
+   * A packet that is cut off at the end is not an error, as the rest of it may just not have arrived yet. It is
+   * returned as the remainder instead, so it can be put in front of the next chunk of data. A bad checksum does not
+   * stop the parsing either, check `isValid()` on the packets.
+   *
+   * @param {Buffer | string} data the bytes, or the hex string of them
+   * @param {boolean} [autoCalculate=true] passed on to each packet
+   * @returns {{ packets: Packet[]; remainder: Buffer }} the packets, and what was left over at the end
+   * @throws {DumlParseError} for a hex string that is not hex, for bytes where a packet should start that are not
+   * the start of a packet (`BAD_MAGIC`), or for a packet that says it is shorter than a packet can be
+   */
+  public static parseAll(
+    data: Buffer | string,
+    autoCalculate = true,
+  ): { packets: Packet[]; remainder: Buffer } {
+    const buffer = typeof data === "string" ? Packet.hexToBuffer(data) : data;
+    const packets: Packet[] = [];
+
+    let offset = 0;
+    while (offset < buffer.length) {
+      if (buffer[offset] !== MAGIC) {
+        throw parseError("BAD_MAGIC");
+      }
+
+      // Without the length bytes there is no telling how long it is, so wait for more
+      if (buffer.length - offset < 3) {
+        break;
+      }
+
+      const length = buffer.readUInt16LE(offset + 1) & MAX_PACKET_LENGTH;
+      if (length < MIN_PACKET_LENGTH) {
+        throw parseError("LENGTH_TOO_SMALL");
+      }
+
+      if (length > buffer.length - offset) {
+        break;
+      }
+
+      packets.push(
+        Packet.fromBuffer(
+          buffer.subarray(offset, offset + length),
+          autoCalculate,
+        ),
+      );
+      offset += length;
+    }
+
+    return { packets, remainder: Buffer.from(buffer.subarray(offset)) };
+  }
+
+  /**
+   * Buffer.from silently stops at anything it can't read, which would give a confusing error (or worse, a shorter
+   * packet) further on, so anything that is not hex is rejected.
+   *
+   * A single digit at the end, half a byte, is ignored though. Hex dumps and captures are often cut anywhere, and
+   * this has always been accepted: duml-beagle-parse relies on it for most of the packets in a real capture.
+   */
+  private static hexToBuffer(hexString: string): Buffer {
+    if (
+      typeof hexString !== "string" ||
+      !/^(?:[0-9a-fA-F]{2})*[0-9a-fA-F]?$/.test(hexString)
+    ) {
+      throw parseError("INVALID_HEX");
+    }
+
+    return Buffer.from(hexString, "hex");
   }
 }
 
+export type { DumlParseErrorCode, PacketOptions };
 export {
   AckType,
   CommandType,
   DeviceType,
+  DumlParseError,
   EncryptionType,
   GeneralTypes,
   SetType,
