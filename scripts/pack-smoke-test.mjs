@@ -34,25 +34,25 @@ try {
   // As an ES module
   const esm = run(
     process.execPath,
-    ["--input-type=module", "-e", `import { Packet } from "duml-packet"; console.log(Packet.fromHexString("${hex}").isValid());`],
+    ["--input-type=module", "-e", `import { Packet, DumlParseError } from "duml-packet"; try { Packet.fromHexString("zz"); } catch (error) { console.log(error instanceof DumlParseError && error.code === "INVALID_HEX"); } console.log(Packet.parseAll("${hex}${hex}").packets.length === 2, Packet.fromHexString("${hex}").isValid());`],
     { cwd: project },
   );
-  assert.equal(esm.trim(), "true");
+  assert.equal(esm.trim(), "true\ntrue true");
   console.log("ok - import");
 
   // As CommonJS
   const cjs = run(
     process.execPath,
-    ["-e", `const { Packet } = require("duml-packet"); console.log(Packet.fromHexString("${hex}").isValid());`],
+    ["-e", `const { Packet, DumlParseError } = require("duml-packet"); try { Packet.fromHexString("zz"); } catch (error) { console.log(error instanceof DumlParseError && error.code === "INVALID_HEX"); } console.log(Packet.fromHexString("${hex}").isValid());`],
     { cwd: project },
   );
-  assert.equal(cjs.trim(), "true");
+  assert.equal(cjs.trim(), "true\ntrue");
   console.log("ok - require");
 
   // The types, resolved the way a modern TypeScript project would
   writeFileSync(
     join(project, "index.ts"),
-    `import { Packet, CommandType } from "duml-packet";\nconst packet: Packet = Packet.fromHexString("${hex}");\nconst type: CommandType = packet.commandType;\nexport { type };\n`,
+    `import { DumlParseError, Packet, CommandType, type DumlParseErrorCode } from "duml-packet";\nconst packet: Packet = Packet.fromHexString("${hex}");\nconst type: CommandType = packet.commandType;\nconst rest: typeof packet.remainder = packet.remainder;\nconst { packets, remainder } = Packet.parseAll(packet.toBuffer());\nconst code: DumlParseErrorCode = new DumlParseError("BAD_MAGIC", "x").code;\nexport { type, rest, packets, remainder, code };\n`,
   );
   writeFileSync(
     join(project, "tsconfig.json"),
