@@ -1,4 +1,3 @@
-import type { EventEmitter } from "node:events";
 import { crc8Wire, crc16KermitJam } from "./crc";
 
 import {
@@ -23,7 +22,7 @@ export interface DumlPacket {
   sourceIndex: number;
 
   destinationRaw: number;
-  destinationType: number;
+  destinationType: DeviceType;
   destinationIndex: number;
 
   sequenceID: number;
@@ -35,7 +34,7 @@ export interface DumlPacket {
 
   commandSet: number;
   command: number;
-  commandPayload: Buffer;
+  commandPayload: Buffer | undefined;
 
   crc: number;
 
@@ -55,7 +54,7 @@ export class Packet implements DumlPacket {
   sourceIndex: number;
 
   destinationRaw: number;
-  destinationType: number;
+  destinationType: DeviceType;
   destinationIndex: number;
 
   sequenceID: number;
@@ -72,7 +71,6 @@ export class Packet implements DumlPacket {
   crc: number;
 
   changed: boolean;
-  emitter: EventEmitter;
 
   /**
    *
@@ -94,46 +92,32 @@ export class Packet implements DumlPacket {
     // If any raw types have been passed, then they will take presidence
     // over other parameters passed in
     if (!packet.raw) {
-      this.version = packet.version ? packet.version : 0x1;
+      this.version = packet.version ?? 0x1;
 
       // We need to calculate this for the length
-      this.commandPayload = packet.commandPayload
-        ? packet.commandPayload
-        : undefined;
+      this.commandPayload = packet.commandPayload;
 
-      this.length = packet.length
-        ? packet.length
-        : 13 + ~~this.commandPayload?.length;
+      this.length = packet.length ?? 13 + ~~this.commandPayload?.length;
 
-      this.crcHead = packet.crcHead ? packet.crcHead : 0x00;
+      this.crcHead = packet.crcHead ?? 0x00;
 
-      this.sourceRaw = packet.sourceRaw ? packet.sourceRaw : 0x00;
-      if (packet.sourceRaw) {
+      this.sourceRaw = packet.sourceRaw ?? 0x00;
+      if (packet.sourceRaw != null) {
         this.sourceType = this.sourceRaw & 0x1f;
         this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
       } else {
-        this.sourceType = packet.sourceType
-          ? packet.sourceType
-          : DeviceType.ANY;
-        this.sourceIndex = packet.sourceIndex
-          ? packet.sourceIndex
-          : DeviceType.ANY;
+        this.sourceType = packet.sourceType ?? DeviceType.ANY;
+        this.sourceIndex = packet.sourceIndex ?? 0;
         this.sourceRaw = this.sourceType | (this.sourceIndex << 0x5);
       }
 
-      this.destinationRaw = packet.destinationRaw
-        ? packet.destinationRaw
-        : 0x00;
-      if (packet.destinationRaw) {
+      this.destinationRaw = packet.destinationRaw ?? 0x00;
+      if (packet.destinationRaw != null) {
         this.destinationType = this.destinationRaw & 0x1f;
         this.destinationIndex = (this.destinationRaw & 0xe0) >> 0x5;
       } else {
-        this.destinationType = packet.destinationType
-          ? packet.destinationType
-          : DeviceType.ANY;
-        this.destinationIndex = packet.destinationIndex
-          ? packet.destinationIndex
-          : DeviceType.ANY;
+        this.destinationType = packet.destinationType ?? DeviceType.ANY;
+        this.destinationIndex = packet.destinationIndex ?? 0;
         this.destinationRaw =
           this.destinationType | (this.destinationIndex << 0x5);
       }
@@ -144,31 +128,25 @@ export class Packet implements DumlPacket {
         this.randomSequenceID();
       }
 
-      this.commandTypeRaw = packet.commandTypeRaw
-        ? packet.commandTypeRaw
-        : 0x00;
-      if (packet.commandTypeRaw) {
+      this.commandTypeRaw = packet.commandTypeRaw ?? 0x00;
+      if (packet.commandTypeRaw != null) {
         this.commandType = this.commandTypeRaw >> 7;
-        this.ackType = this.commandTypeRaw >> 5;
+        this.ackType = (this.commandTypeRaw >> 5) & 0x03;
         this.encryptionType = this.commandTypeRaw & 0x0f;
       } else {
-        this.commandType = packet.commandType
-          ? packet.commandType
-          : CommandType.REQUEST;
-        this.ackType = packet.ackType ? packet.ackType : AckType.NO_ACK;
-        this.encryptionType = packet.encryptionType
-          ? packet.encryptionType
-          : EncryptionType.NONE;
+        this.commandType = packet.commandType ?? CommandType.REQUEST;
+        this.ackType = packet.ackType ?? AckType.NO_ACK;
+        this.encryptionType = packet.encryptionType ?? EncryptionType.NONE;
         this.commandTypeRaw =
           (this.commandType << 7) | (this.ackType << 5) | this.encryptionType;
       }
 
-      this.commandSet = packet.commandSet ? packet.commandSet : SetType.GENERAL;
+      this.commandSet = packet.commandSet ?? SetType.GENERAL;
 
       // Command payload done first for length
-      this.command = packet.command ? packet.command : 0x00;
+      this.command = packet.command ?? 0x00;
 
-      this.crc = packet.crc ? packet.crc : 0x0000;
+      this.crc = packet.crc ?? 0x0000;
 
       this.changed = false;
 
@@ -214,7 +192,7 @@ export class Packet implements DumlPacket {
     this.sequenceID = this.raw.readUInt16BE(6);
     this.commandTypeRaw = this.raw.readUInt8(8);
     this.commandType = this.commandTypeRaw >> 7;
-    this.ackType = this.commandTypeRaw >> 5;
+    this.ackType = (this.commandTypeRaw >> 5) & 0x03;
     this.encryptionType = this.commandTypeRaw & 0x0f;
     this.commandSet = this.raw.readUInt8(9);
     this.command = this.raw.readUint8(10);
@@ -231,6 +209,27 @@ export class Packet implements DumlPacket {
     // biome-ignore lint/correctness/noConstructorReturn: Needed for proxy objects
     return this;
   }
+
+  private static readonly packetFields = new Set([
+    "version",
+    "length",
+    "crcHead",
+    "sourceRaw",
+    "sourceType",
+    "sourceIndex",
+    "destinationRaw",
+    "destinationType",
+    "destinationIndex",
+    "sequenceID",
+    "commandTypeRaw",
+    "commandType",
+    "ackType",
+    "encryptionType",
+    "commandSet",
+    "command",
+    "commandPayload",
+    "crc",
+  ]);
 
   private createPacketProxy(packet: Packet): Packet {
     const handler = {
@@ -264,11 +263,6 @@ export class Packet implements DumlPacket {
       },
 
       set: (target: Packet, propertyName: keyof Packet, value: unknown) => {
-        // Never let a command payload be set to undefined
-        // if (['commandPayload'].includes(propertyName) && value === undefined) {
-        //   value = Buffer.alloc(0);
-        // }
-
         // If someone wants to change raw, just create a new object for them
         if (["raw"].includes(propertyName)) {
           throw new Error(
@@ -277,7 +271,10 @@ export class Packet implements DumlPacket {
         }
 
         const ret = Reflect.set(target, propertyName, value);
-        if (Packet.prototype[propertyName] !== null) {
+        if (
+          target !== packet ||
+          Packet.packetFields.has(propertyName as string)
+        ) {
           packet.changed = true;
           packet.calculatePacket();
         }
@@ -339,9 +336,7 @@ export class Packet implements DumlPacket {
     buffer.writeUint8(this.command, 10);
 
     if (this.commandPayload?.length > 0) {
-      for (let i = 0; i < this.commandPayload.length; i++) {
-        buffer.writeUInt8(this.commandPayload.at(i), 11 + i);
-      }
+      this.commandPayload.copy(buffer, 11);
     }
 
     if (generate) {
