@@ -3,7 +3,7 @@
 //
 // Run it after a build: npm run test:package
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -30,6 +30,14 @@ try {
   const cli = run(join(project, "node_modules", ".bin", "dumlpacket"), ["pretty-print", hex]);
   assert.match(cli, /Valid CRC:\s+true/, `unexpected CLI output:\n${cli}`);
   console.log("ok - dumlpacket pretty-print");
+
+  // Input that is not a packet is one line on stderr and a failing exit status, not a stack trace
+  const bad = spawnSync(join(project, "node_modules", ".bin", "dumlpacket"), ["print", "zz"], { encoding: "utf8" });
+  assert.equal(bad.status, 1, `expected exit status 1, got ${bad.status}`);
+  assert.equal(bad.stdout, "");
+  assert.match(bad.stderr, /^Error: Invalid hex string/);
+  assert.equal(bad.stderr.trim().split("\n").length, 1, `expected one line, got:\n${bad.stderr}`);
+  console.log("ok - dumlpacket on bad input");
 
   // As an ES module
   const esm = run(
