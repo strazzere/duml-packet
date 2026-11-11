@@ -189,5 +189,5 @@ npm run test:package  # after a build: packs the package, installs it in an empt
 ```
 Licensed under ISC License
 
-Copyright 2022-2025 Tim 'diff' Strazzere <diff@protonmail.com>
+Copyright 2022-2027 Tim 'diff' Strazzere <diff@protonmail.com>
 ```
