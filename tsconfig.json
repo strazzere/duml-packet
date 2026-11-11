@@ -3,18 +3,18 @@
 		"module": "ES2022",
 		"esModuleInterop": true,
 		"target": "es2022",
+		// TypeScript 6 turns strict on by default, which this code base doesn't satisfy yet
+		"strict": false,
 		"noImplicitAny": true,
 		"sourceMap": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
+		"rootDir": "src",
 		"outDir": "dist",
 		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
 		"resolveJsonModule": true,
-		"baseUrl": ".",
 		"declaration": true,
-		"paths": {
-			"*": ["node_modules/*"]
-		},
+		"types": ["node", "jest"],
 		"skipLibCheck": true
 	},
 	"include": ["src/**/*"],
