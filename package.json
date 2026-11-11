@@ -3,11 +3,17 @@
 	"version": "2.0.4",
 	"description": "For use when parsing and modifying DUML packets for DJI drones",
 	"exports": {
-		"import": "./dist/bundle.js",
-		"require": "./dist/bundle.cjs"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/bundle.js",
+			"require": "./dist/bundle.cjs"
+		},
+		"./package.json": "./package.json"
 	},
+	"main": "./dist/bundle.cjs",
+	"module": "./dist/bundle.js",
 	"bin": {
-		"dumlpacket": "dist/cli.js"
+		"dumlpacket": "dist/cli.bundle.js"
 	},
 	"type": "module",
 	"types": "./dist/index.d.ts",
@@ -18,6 +24,7 @@
 		"format": "biome format --write rollup.config.js package.json tsconfig.json ./src",
 		"cli": "node dist/cli.bundle.js",
 		"test": "jest --maxWorkers 8",
+		"test:package": "node scripts/pack-smoke-test.mjs",
 		"test:coverage": "jest --collectCoverage --coverageDirectory=\"./coverage\" --reporters=default --reporters=jest-junit --maxWorkers 8",
 		"test:coverage:html": "jest --collectCoverage --coverageDirectory=\"./coverage\" --reporters=html --reporters=text --reporters=jest-junit --maxWorkers 8",
 		"prepublishOnly": "npm run build",
@@ -28,7 +35,9 @@
 		"./dist/bundle.js",
 		"./dist/bundle.js.map",
 		"./dist/bundle.cjs",
-		"./dist/bundle.cjs.map"
+		"./dist/bundle.cjs.map",
+		"./dist/cli.bundle.js",
+		"./dist/cli.bundle.js.map"
 	],
 	"repository": {
 		"type": "git",
