@@ -1,4 +1,5 @@
 import { crc8Wire, crc16KermitJam } from "./crc";
+import { DumlParseError, type DumlParseErrorCode } from "./errors";
 
 import {
   AckType,
@@ -38,9 +39,33 @@ export interface DumlPacket {
 
   crc: number;
 
+  /** The bytes that came after this packet in the buffer it was parsed from, empty if there were none. */
+  remainder: Buffer;
+
   isValid(): boolean;
   toBuffer(): Buffer;
 }
+
+/** Every packet starts with this byte */
+const MAGIC = 0x55;
+/** The fields of a packet (the header, command, crc, but no payload) are this many bytes */
+const MIN_PACKET_LENGTH = 13;
+/** The length is stored in ten bits */
+const MAX_PACKET_LENGTH = 0x3ff;
+
+const messages: Record<DumlParseErrorCode, string> = {
+  INVALID_HEX:
+    "Invalid hex string, expected an even number of hexadecimal characters",
+  BUFFER_TOO_SMALL:
+    "Buffer length smaller than minimum size allowed for valid packet",
+  BAD_MAGIC: "Unexpected magic identifier",
+  LENGTH_TOO_SMALL:
+    "Packet length smaller than minimum size allowed for valid packet",
+  LENGTH_EXCEEDS_BUFFER: "Packet length larger than provided buffer",
+};
+
+const parseError = (code: DumlParseErrorCode): DumlParseError =>
+  new DumlParseError(code, messages[code]);
 
 export class Packet implements DumlPacket {
   raw: Buffer;
@@ -69,6 +94,9 @@ export class Packet implements DumlPacket {
   commandPayload: Buffer | undefined;
 
   crc: number;
+
+  /** The bytes that came after this packet in the buffer it was parsed from, empty if there were none. */
+  remainder: Buffer = Buffer.alloc(0);
 
   changed: boolean;
 
@@ -162,25 +190,30 @@ export class Packet implements DumlPacket {
       return this;
     }
 
-    if (!packet.raw || packet.raw.length < 13) {
-      throw new Error(
-        "Buffer length smaller than minimum size allowed for valid packet",
-      );
+    if (!packet.raw || packet.raw.length < MIN_PACKET_LENGTH) {
+      throw parseError("BUFFER_TOO_SMALL");
     }
 
-    if (packet.raw[0] !== 0x55) {
-      throw new Error("Unexpected magic identifier");
+    if (packet.raw[0] !== MAGIC) {
+      throw parseError("BAD_MAGIC");
     }
 
     this.version = (packet.raw.readUInt16LE(1) & 0xfc00) >> 0xa;
     this.length = packet.raw.readUInt16LE(1) & 0x03ff;
     this.crcHead = packet.raw.readUInt8(3);
 
-    if (this.length > packet.raw.length) {
-      throw new Error("Packet length larger than provided buffer");
+    if (this.length < MIN_PACKET_LENGTH) {
+      throw parseError("LENGTH_TOO_SMALL");
     }
 
-    this.raw = packet.raw;
+    if (this.length > packet.raw.length) {
+      throw parseError("LENGTH_EXCEEDS_BUFFER");
+    }
+
+    // The packet is what its length says, anything after it belongs to whatever comes next. This is copied, so the
+    // packet doesn't share memory with the buffer it came from (editing the payload would change the caller's data)
+    this.raw = Buffer.from(packet.raw.subarray(0, this.length));
+    this.remainder = Buffer.from(packet.raw.subarray(this.length));
     this.sourceRaw = this.raw.readUInt8(4);
     this.sourceType = this.sourceRaw & 0x1f;
     this.sourceIndex = (this.sourceRaw & 0xe0) >> 0x5;
@@ -449,14 +482,81 @@ export class Packet implements DumlPacket {
    * @returns {Packet}
    */
   public static fromHexString(hexString: string, autoCalculate = true): Packet {
-    return new Packet({ raw: Buffer.from(hexString, "hex") }, autoCalculate);
+    return new Packet({ raw: Packet.hexToBuffer(hexString) }, autoCalculate);
+  }
+
+  /**
+   * Split a buffer (or hex string) of packets that are back to back, like a capture or a stream, into packets.
+   *
+   * A packet that is cut off at the end is not an error, as the rest of it may just not have arrived yet. It is
+   * returned as the remainder instead, so it can be put in front of the next chunk of data. A bad checksum does not
+   * stop the parsing either, check `isValid()` on the packets.
+   *
+   * @param {Buffer | string} data the bytes, or the hex string of them
+   * @param {boolean} [autoCalculate=true] passed on to each packet
+   * @returns {{ packets: Packet[]; remainder: Buffer }} the packets, and what was left over at the end
+   * @throws {DumlParseError} for a hex string that is not hex, for bytes where a packet should start that are not
+   * the start of a packet (`BAD_MAGIC`), or for a packet that says it is shorter than a packet can be
+   */
+  public static parseAll(
+    data: Buffer | string,
+    autoCalculate = true,
+  ): { packets: Packet[]; remainder: Buffer } {
+    const buffer = typeof data === "string" ? Packet.hexToBuffer(data) : data;
+    const packets: Packet[] = [];
+
+    let offset = 0;
+    while (offset < buffer.length) {
+      if (buffer[offset] !== MAGIC) {
+        throw parseError("BAD_MAGIC");
+      }
+
+      // Without the length bytes there is no telling how long it is, so wait for more
+      if (buffer.length - offset < 3) {
+        break;
+      }
+
+      const length = buffer.readUInt16LE(offset + 1) & MAX_PACKET_LENGTH;
+      if (length < MIN_PACKET_LENGTH) {
+        throw parseError("LENGTH_TOO_SMALL");
+      }
+
+      if (length > buffer.length - offset) {
+        break;
+      }
+
+      packets.push(
+        Packet.fromBuffer(
+          buffer.subarray(offset, offset + length),
+          autoCalculate,
+        ),
+      );
+      offset += length;
+    }
+
+    return { packets, remainder: Buffer.from(buffer.subarray(offset)) };
+  }
+
+  private static hexToBuffer(hexString: string): Buffer {
+    // Buffer.from silently drops anything it can't read, which would give a confusing error (or worse, a
+    // different packet) further on
+    if (
+      typeof hexString !== "string" ||
+      !/^(?:[0-9a-fA-F]{2})*$/.test(hexString)
+    ) {
+      throw parseError("INVALID_HEX");
+    }
+
+    return Buffer.from(hexString, "hex");
   }
 }
 
+export type { DumlParseErrorCode, PacketOptions };
 export {
   AckType,
   CommandType,
   DeviceType,
+  DumlParseError,
   EncryptionType,
   GeneralTypes,
   SetType,
