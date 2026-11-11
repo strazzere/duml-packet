@@ -1,4 +1,5 @@
 import type { Arguments } from "yargs";
+import { Packet } from "../packet";
 import { commands } from "./index";
 
 const GOOD = "550E04662A28DE2F40004F0154c8";
@@ -81,4 +82,20 @@ describe("commands", () => {
       expect(process.exitCode).toBe(1);
     },
   );
+
+  test("anything that is not a parse error is a bug and is not hidden", () => {
+    const broken = jest
+      .spyOn(Packet, "fromHexString")
+      .mockImplementation(() => {
+        throw new TypeError("a bug");
+      });
+
+    try {
+      expect(() => command("print")(GOOD)).toThrow("a bug");
+      expect(error).not.toHaveBeenCalled();
+      expect(process.exitCode).toBeUndefined();
+    } finally {
+      broken.mockRestore();
+    }
+  });
 });
