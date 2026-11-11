@@ -119,8 +119,7 @@ const validatePayloadSize = (payload: Buffer | undefined | null) => {
 };
 
 const messages: Record<DumlParseErrorCode, string> = {
-  INVALID_HEX:
-    "Invalid hex string, expected an even number of hexadecimal characters",
+  INVALID_HEX: "Invalid hex string, expected only hexadecimal characters",
   BUFFER_TOO_SMALL:
     "Buffer length smaller than minimum size allowed for valid packet",
   BAD_MAGIC: "Unexpected magic identifier",
@@ -638,12 +637,17 @@ export class Packet implements DumlPacket {
     return { packets, remainder: Buffer.from(buffer.subarray(offset)) };
   }
 
+  /**
+   * Buffer.from silently stops at anything it can't read, which would give a confusing error (or worse, a shorter
+   * packet) further on, so anything that is not hex is rejected.
+   *
+   * A single digit at the end, half a byte, is ignored though. Hex dumps and captures are often cut anywhere, and
+   * this has always been accepted: duml-beagle-parse relies on it for most of the packets in a real capture.
+   */
   private static hexToBuffer(hexString: string): Buffer {
-    // Buffer.from silently drops anything it can't read, which would give a confusing error (or worse, a
-    // different packet) further on
     if (
       typeof hexString !== "string" ||
-      !/^(?:[0-9a-fA-F]{2})*$/.test(hexString)
+      !/^(?:[0-9a-fA-F]{2})*[0-9a-fA-F]?$/.test(hexString)
     ) {
       throw parseError("INVALID_HEX");
     }

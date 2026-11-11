@@ -64,9 +64,23 @@ describe("fromHexString", () => {
     expect(Packet.fromHexString(GOOD).toHexString()).toBe(GOOD);
   });
 
+  test("ignores half a byte at the end, as it always has", () => {
+    // Captures and hex dumps are cut anywhere, and this is accepted by older versions, which
+    // duml-beagle-parse depends on for most of the packets in a real capture
+    const packet = Packet.fromHexString(`${GOOD}5`);
+
+    expect(packet.toHexString()).toBe(GOOD);
+    expect(packet.isValid()).toBe(true);
+    expect(packet.remainder).toHaveLength(0);
+  });
+
   test.each([
-    ["an odd number of characters", `${GOOD}0`],
     ["characters that are not hex", "zz"],
+    ["characters that are not hex after a packet", `${GOOD}zz`],
+    [
+      "a non hex character in the middle",
+      `${GOOD.slice(0, 10)}g${GOOD.slice(11)}`,
+    ],
     ["a 0x prefix", `0x${GOOD}`],
     ["whitespace", `${GOOD.slice(0, 10)} ${GOOD.slice(10)}`],
   ])("rejects %s", (_name, hex) => {
@@ -205,9 +219,16 @@ describe("parseAll", () => {
   });
 
   test("hex input is validated", () => {
-    expect(parseError(() => Packet.parseAll(`${GOOD}0`)).code).toBe(
+    expect(parseError(() => Packet.parseAll(`${GOOD}zz`)).code).toBe(
       "INVALID_HEX",
     );
+  });
+
+  test("half a byte at the end of hex input is ignored, like fromHexString", () => {
+    const { packets, remainder } = Packet.parseAll(`${GOOD}${GOOD}5`);
+
+    expect(packets).toHaveLength(2);
+    expect(remainder).toHaveLength(0);
   });
 
   test("does not modify the buffer it is given", () => {
